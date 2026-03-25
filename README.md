@@ -2,6 +2,9 @@
 
 🌐 **Live Demo:** [https://miniappshowcase.netlify.app/](https://miniappshowcase.netlify.app/)
 
+
+🌐 **Live Demo 2:** [https://minhlicious.github.io/miniapps/](https://minhlicious.github.io/miniapps/)
+
 A curated collection of interactive mini apps for learning electronics, physics, vocabulary, and music. Built entirely with vanilla HTML, CSS, and JavaScript.
 
 ## 🚀 Apps Collection
