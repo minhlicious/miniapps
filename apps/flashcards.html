@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexicon — Vocabulary Flashcards</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg:        #0d0d0f;
+    --surface:   #141417;
+    --card-front:#1a1a1f;
+    --card-back: #0f1a2e;
+    --border:    rgba(255,255,255,0.07);
+    --gold:      #c9a84c;
+    --gold-dim:  #7a5e24;
+    --teal:      #3de8c8;
+    --red:       #e85a5a;
+    --text:      #e8e4d9;
+    --muted:     #5a5850;
+    --radius:    16px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+    overflow-x: hidden;
+  }
+
+  /* grain overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    margin-bottom: 44px;
+    position: relative; z-index: 1;
+  }
+  .wordmark {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    background: linear-gradient(135deg, var(--gold) 0%, #f0d98a 50%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-transform: uppercase;
+  }
+  .tagline {
+    font-size: 0.68rem;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* ── SCORE BAR ── */
+  .scoreboard {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 28px;
+    position: relative; z-index: 1;
+  }
+  .score-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .score-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .score-num {
+    font-size: 1.6rem;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .score-num.correct { color: var(--teal); }
+  .score-num.incorrect { color: var(--red); }
+  .score-num.total { color: var(--gold); }
+
+  /* ── PROGRESS ── */
+  .progress-wrap {
+    width: min(480px, 90vw);
+    margin-bottom: 36px;
+    position: relative; z-index: 1;
+  }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .progress-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: visible;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -1px; top: 50%;
+    transform: translateY(-50%);
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 8px var(--gold);
+  }
+
+  /* ── CARD SCENE ── */
+  .scene {
+    width: min(480px, 90vw);
+    height: 280px;
+    perspective: 1200px;
+    cursor: pointer;
+    position: relative; z-index: 1;
+    margin-bottom: 28px;
+  }
+
+  .card {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.65s cubic-bezier(0.4,0,0.2,1);
+  }
+  .card.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 36px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  /* front */
+  .card-front {
+    background: var(--card-front);
+  }
+  .card-front::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .card-front .part-of-speech {
+    font-size: 0.6rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 16px;
+  }
+  .card-front .word {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 2.8rem);
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  .card-front .hint {
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 24px;
+  }
+  .flip-indicator {
+    position: absolute;
+    bottom: 18px; right: 22px;
+    font-size: 0.58rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .flip-indicator svg {
+    width: 14px; height: 14px; opacity: 0.5;
+    animation: spin 3s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* back */
+  .card-back {
+    background: var(--card-back);
+    transform: rotateY(180deg);
+  }
+  .card-back::before {
+    content: '';
+    position: absolute;
+    bottom: -50px; left: -50px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(61,232,200,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .card-back .def-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.38em;
+    text-transform: uppercase;
+    color: var(--teal);
+    opacity: 0.7;
+    margin-bottom: 14px;
+  }
+  .card-back .definition {
+    font-size: clamp(0.85rem, 2.5vw, 1.02rem);
+    color: var(--text);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .card-back .example {
+    margin-top: 16px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* card shimmer on hover */
+  .scene:hover .card-face {
+    border-color: rgba(201,168,76,0.18);
+  }
+
+  /* ── ACTION BUTTONS ── */
+  .actions {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 32px;
+    position: relative; z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .actions.visible {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+  }
+
+  .btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 28px;
+    border: 1px solid;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: transparent;
+  }
+  .btn-correct {
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+  .btn-correct:hover {
+    background: rgba(61,232,200,0.08);
+    box-shadow: 0 0 16px rgba(61,232,200,0.15);
+  }
+  .btn-incorrect {
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .btn-incorrect:hover {
+    background: rgba(232,90,90,0.08);
+    box-shadow: 0 0 16px rgba(232,90,90,0.15);
+  }
+  .btn-new {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+    padding: 12px 36px;
+  }
+  .btn-new:hover {
+    background: rgba(201,168,76,0.08);
+    box-shadow: 0 0 16px rgba(201,168,76,0.15);
+    border-color: var(--gold);
+  }
+
+  /* ── END SCREEN ── */
+  .end-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.5s ease forwards;
+  }
+  .end-screen.visible { display: flex; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .end-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gold);
+  }
+  .end-subtitle {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .end-stats {
+    display: flex; gap: 40px;
+    padding: 24px 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .end-stat { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .end-stat-num { font-size: 2.2rem; font-weight: 500; line-height: 1; }
+  .end-stat-label { font-size: 0.58rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); }
+
+  /* ── FEEDBACK FLASH ── */
+  .feedback-flash {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .feedback-flash.correct { background: rgba(61,232,200,0.04); }
+  .feedback-flash.incorrect { background: rgba(232,90,90,0.04); }
+  .feedback-flash.show { opacity: 1; }
+
+  /* ── CARD COUNT BADGE ── */
+  .card-badge {
+    position: absolute;
+    top: 18px; left: 22px;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ── GAME AREA WRAPPER ── */
+  .game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+
+<div class="feedback-flash" id="flash"></div>
+
+<header>
+  <div class="wordmark">Lexicon</div>
+  <div class="tagline">Vocabulary Flashcards</div>
+</header>
+
+<div class="scoreboard">
+  <div class="score-block">
+    <span class="score-label">Correct</span>
+    <span class="score-num correct" id="scoreCorrect">0</span>
+  </div>
+  <div class="score-block">
+    <span class="score-label">Card</span>
+    <span class="score-num total" id="scoreCurrent">1</span>
+  </div>
+  <div class="score-block">
+    <span class="score-label">Wrong</span>
+    <span class="score-num incorrect" id="scoreIncorrect">0</span>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-meta">
+    <span>Progress</span>
+    <span id="progressLabel">0 / 10</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+</div>
+
+<div class="game-area" id="gameArea">
+  <div class="scene" id="scene" onclick="flipCard()">
+    <div class="card" id="card">
+      <div class="card-face card-front">
+        <div class="card-badge" id="cardBadge">01 / 10</div>
+        <div class="part-of-speech" id="pos"></div>
+        <div class="word" id="wordText"></div>
+        <div class="hint">tap to reveal definition</div>
+        <div class="flip-indicator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 12a8 8 0 0 1 8-8v0a8 8 0 0 1 8 8" stroke-linecap="round"/>
+            <path d="M20 12l-2-2m2 2l-2 2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          flip
+        </div>
+      </div>
+      <div class="card-face card-back">
+        <div class="card-badge" id="cardBadgeBack">01 / 10</div>
+        <div class="def-label">Definition</div>
+        <div class="definition" id="defText"></div>
+        <div class="example" id="exampleText"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions" id="actions">
+    <button class="btn btn-incorrect" onclick="markAnswer(false)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      Missed it
+    </button>
+    <button class="btn btn-correct" onclick="markAnswer(true)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Got it
+    </button>
+  </div>
+</div>
+
+<div class="end-screen" id="endScreen">
+  <div class="end-title">Round Complete</div>
+  <div class="end-subtitle">Here's how you did</div>
+  <div class="end-stats">
+    <div class="end-stat">
+      <span class="end-stat-num correct" id="endCorrect">—</span>
+      <span class="end-stat-label">Correct</span>
+    </div>
+    <div class="end-stat">
+      <span class="end-stat-num incorrect" id="endIncorrect">—</span>
+      <span class="end-stat-label">Missed</span>
+    </div>
+    <div class="end-stat">
+      <span class="end-stat-num total" id="endPct">—</span>
+      <span class="end-stat-label">Score %</span>
+    </div>
+  </div>
+  <button class="btn btn-new" onclick="startGame()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    New Game
+  </button>
+</div>
+
+<script>
+  const VOCAB = [
+    {
+      word: "Ephemeral",
+      pos: "adjective",
+      definition: "Lasting for a very short time; transitory.",
+      example: "\"The ephemeral beauty of cherry blossoms makes them all the more precious.\""
+    },
+    {
+      word: "Sycophant",
+      pos: "noun",
+      definition: "A person who acts obsequiously toward someone important in order to gain advantage.",
+      example: "\"The director's sycophants praised every idea, no matter how flawed.\""
+    },
+    {
+      word: "Loquacious",
+      pos: "adjective",
+      definition: "Tending to talk a great deal; talkative.",
+      example: "\"The loquacious host kept the audience entertained for hours.\""
+    },
+    {
+      word: "Perfidious",
+      pos: "adjective",
+      definition: "Deceitful and untrustworthy; guilty of betrayal.",
+      example: "\"The perfidious spy sold secrets to three different governments.\""
+    },
+    {
+      word: "Mellifluous",
+      pos: "adjective",
+      definition: "Sweet or musical; pleasant to hear; flowing smoothly.",
+      example: "\"Her mellifluous voice made even mundane announcements sound poetic.\""
+    },
+    {
+      word: "Solipsism",
+      pos: "noun",
+      definition: "The view that the self is the only thing that can be known to exist.",
+      example: "\"His solipsism made it impossible to consider perspectives beyond his own.\""
+    },
+    {
+      word: "Laconic",
+      pos: "adjective",
+      definition: "Using very few words; brief and concise in speech or expression.",
+      example: "\"His laconic reply — a single nod — conveyed more than paragraphs could.\""
+    },
+    {
+      word: "Pernicious",
+      pos: "adjective",
+      definition: "Having a harmful effect, especially in a gradual or subtle way.",
+      example: "\"The pernicious rumour spread quietly through the organization.\""
+    },
+    {
+      word: "Equanimity",
+      pos: "noun",
+      definition: "Mental calmness and composure, especially in difficult situations.",
+      example: "\"She faced the crisis with remarkable equanimity.\""
+    },
+    {
+      word: "Sanguine",
+      pos: "adjective",
+      definition: "Optimistic, especially in a difficult situation; blood-red in colour.",
+      example: "\"Despite the setbacks, he remained sanguine about the project's outcome.\""
+    }
+  ];
+
+  let deck = [];
+  let current = 0;
+  let correct = 0;
+  let incorrect = 0;
+  let isFlipped = false;
+  let answered = false;
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function startGame() {
+    deck = shuffle(VOCAB);
+    current = 0;
+    correct = 0;
+    incorrect = 0;
+    answered = false;
+
+    document.getElementById('endScreen').classList.remove('visible');
+    document.getElementById('gameArea').style.display = 'flex';
+
+    updateScore();
+    loadCard();
+  }
+
+  function loadCard() {
+    const entry = deck[current];
+    const total = deck.length;
+    const num = String(current + 1).padStart(2, '0');
+    const tot = String(total).padStart(2, '0');
+
+    document.getElementById('cardBadge').textContent     = `${num} / ${tot}`;
+    document.getElementById('cardBadgeBack').textContent = `${num} / ${tot}`;
+    document.getElementById('pos').textContent           = entry.pos;
+    document.getElementById('wordText').textContent      = entry.word;
+    document.getElementById('defText').textContent       = entry.definition;
+    document.getElementById('exampleText').textContent   = entry.example;
+    document.getElementById('scoreCurrent').textContent  = current + 1;
+
+    // reset flip
+    const card = document.getElementById('card');
+    card.style.transition = 'none';
+    card.classList.remove('flipped');
+    void card.offsetWidth; // reflow
+    card.style.transition = '';
+
+    isFlipped = false;
+    answered = false;
+    document.getElementById('actions').classList.remove('visible');
+    updateProgress();
+  }
+
+  function flipCard() {
+    if (answered) return;
+    const card = document.getElementById('card');
+    isFlipped = !isFlipped;
+    card.classList.toggle('flipped', isFlipped);
+    if (isFlipped) {
+      setTimeout(() => {
+        document.getElementById('actions').classList.add('visible');
+      }, 350);
+    } else {
+      document.getElementById('actions').classList.remove('visible');
+    }
+  }
+
+  function markAnswer(isCorrect) {
+    if (answered || !isFlipped) return;
+    answered = true;
+
+    if (isCorrect) correct++;
+    else incorrect++;
+
+    // flash feedback
+    const flash = document.getElementById('flash');
+    flash.className = 'feedback-flash ' + (isCorrect ? 'correct' : 'incorrect');
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 200);
+
+    updateScore();
+    updateProgress();
+    document.getElementById('actions').classList.remove('visible');
+
+    setTimeout(() => {
+      current++;
+      if (current >= deck.length) {
+        showEndScreen();
+      } else {
+        loadCard();
+      }
+    }, 420);
+  }
+
+  function updateScore() {
+    document.getElementById('scoreCorrect').textContent   = correct;
+    document.getElementById('scoreIncorrect').textContent = incorrect;
+  }
+
+  function updateProgress() {
+    const done = answered ? current + 1 : current;
+    const pct  = (done / deck.length) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = `${done} / ${deck.length}`;
+  }
+
+  function showEndScreen() {
+    document.getElementById('gameArea').style.display = 'none';
+    const endEl = document.getElementById('endScreen');
+    endEl.classList.add('visible');
+    const pct = Math.round((correct / deck.length) * 100);
+    document.getElementById('endCorrect').textContent   = correct;
+    document.getElementById('endIncorrect').textContent = incorrect;
+    document.getElementById('endPct').textContent       = pct + '%';
+
+    // full progress
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressLabel').textContent = `${deck.length} / ${deck.length}`;
+  }
+
+  // keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+    if (e.code === 'ArrowRight') markAnswer(true);
+    if (e.code === 'ArrowLeft')  markAnswer(false);
+  });
+
+  startGame();
+</script>
+</body>
+</html>

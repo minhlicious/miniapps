@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Grand Piano</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0d;
+    --gold: #c9a84c;
+    --gold-dim: #7a6230;
+    --white-key: #f0ece0;
+    --white-key-active: #e8dfc0;
+    --black-key: #1a1a1a;
+    --label-white: #5a4a2a;
+    --label-black: #c9a84c;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+    font-family: 'DM Mono', monospace;
+    touch-action: none;
+  }
+
+  .shell {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding-bottom: 10px;
+  }
+
+  .title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.2rem, 2.8vw, 2.4rem);
+    color: var(--gold);
+    letter-spacing: 0.1em;
+  }
+
+  .subtitle {
+    font-size: clamp(0.45rem, 0.95vw, 0.62rem);
+    color: var(--gold-dim);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+
+  /* Piano body fills remaining vertical space */
+  .piano-body {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    background: linear-gradient(180deg, #1e1a12 0%, #2a2318 60%, #1a1610 100%);
+    box-shadow: inset 0 3px 0 #c9a84c, inset 0 -3px 0 #7a6230, 0 0 0 1px #3a3020;
+    padding: 18px 20px 24px;
+    position: relative;
+  }
+
+  .piano-body::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 18px;
+    background: linear-gradient(180deg, rgba(201,168,76,0.07) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .keys {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    user-select: none;
+  }
+
+  /* White keys */
+  .key-white {
+    flex: 1 1 0;
+    height: 100%;
+    background: linear-gradient(180deg, var(--white-key) 0%, #e0daca 100%);
+    border: 1px solid #bbb09a;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    box-shadow: 2px 0 0 rgba(0,0,0,0.1), inset 0 -4px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+    transition: background 0.06s, box-shadow 0.06s, transform 0.06s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: clamp(6px, 1.6vh, 16px);
+  }
+
+  .key-white.active {
+    background: linear-gradient(180deg, var(--white-key-active) 0%, #d5c9a8 100%);
+    box-shadow: 2px 0 0 rgba(0,0,0,0.1), inset 0 -2px 4px rgba(0,0,0,0.05), inset 0 4px 8px rgba(0,0,0,0.12);
+    transform: scaleY(0.993) translateY(1px);
+    transform-origin: top;
+  }
+
+  .key-white .label {
+    font-size: clamp(0.42rem, 1.05vw, 0.72rem);
+    font-weight: 400;
+    color: var(--label-white);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+  }
+
+  /* Black keys — sized & positioned by JS */
+  .key-black {
+    position: absolute;
+    top: 0;
+    background: linear-gradient(180deg, #2a2a2a 0%, var(--black-key) 40%, #111 100%);
+    border-radius: 0 0 5px 5px;
+    cursor: pointer;
+    z-index: 2;
+    box-shadow: 1px 4px 8px rgba(0,0,0,0.7), inset 0 -3px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: background 0.06s, box-shadow 0.06s, transform 0.06s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: clamp(5px, 1.2vh, 12px);
+  }
+
+  .key-black.active {
+    background: linear-gradient(180deg, #3d2e00 0%, #2a1f00 40%, #1a1200 100%);
+    box-shadow: 1px 2px 4px rgba(0,0,0,0.7), inset 0 -1px 2px rgba(0,0,0,0.4), inset 0 4px 8px rgba(0,0,0,0.5);
+    transform: scaleY(0.98) translateY(1px);
+    transform-origin: top;
+  }
+
+  .key-black .label {
+    font-size: clamp(0.35rem, 0.8vw, 0.56rem);
+    font-weight: 300;
+    color: var(--label-black);
+    letter-spacing: 0.03em;
+    pointer-events: none;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    margin-bottom: 2px;
+  }
+
+  .octave-line {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--gold-dim) 0%, transparent 100%);
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.45;
+  }
+
+  .hint {
+    flex-shrink: 0;
+    font-size: clamp(0.45rem, 0.85vw, 0.6rem);
+    color: #3a3020;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    padding-top: 8px;
+  }
+
+  @keyframes ripple-white {
+    0%   { box-shadow: 0 0 0 0 rgba(201,168,76,0.4), 2px 0 0 rgba(0,0,0,0.1), inset 0 -4px 6px rgba(0,0,0,0.08); }
+    100% { box-shadow: 0 0 0 16px rgba(201,168,76,0), 2px 0 0 rgba(0,0,0,0.1), inset 0 -4px 6px rgba(0,0,0,0.08); }
+  }
+  @keyframes ripple-black {
+    0%   { box-shadow: 0 0 0 0 rgba(201,168,76,0.3), 1px 4px 8px rgba(0,0,0,0.7); }
+    100% { box-shadow: 0 0 0 12px rgba(201,168,76,0), 1px 4px 8px rgba(0,0,0,0.7); }
+  }
+
+  .key-white.ripple { animation: ripple-white 0.4s ease-out; }
+  .key-black.ripple  { animation: ripple-black 0.4s ease-out; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="header">
+    <div class="title">Grand</div>
+    <div class="subtitle">Interactive Piano — Two Octaves</div>
+  </div>
+
+  <div class="piano-body">
+    <div class="keys" id="keys"></div>
+  </div>
+
+  <div class="hint">Tap or drag across the keys to play</div>
+</div>
+
+<script>
+  const WHITE_NOTES = [
+    'C4','D4','E4','F4','G4','A4','B4',
+    'C5','D5','E5','F5','G5','A5','B5'
+  ];
+
+  const BLACK_NOTE_DEFS = [
+    { label:'C#4', afterWhite: 0  },
+    { label:'D#4', afterWhite: 1  },
+    { label:'F#4', afterWhite: 3  },
+    { label:'G#4', afterWhite: 4  },
+    { label:'A#4', afterWhite: 5  },
+    { label:'C#5', afterWhite: 7  },
+    { label:'D#5', afterWhite: 8  },
+    { label:'F#5', afterWhite: 10 },
+    { label:'G#5', afterWhite: 11 },
+    { label:'A#5', afterWhite: 12 },
+  ];
+
+  const FREQ = (() => {
+    const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const map = {};
+    for (let midi = 0; midi < 128; midi++) {
+      const oct = Math.floor(midi / 12) - 1;
+      map[notes[midi % 12] + oct] = 440 * Math.pow(2, (midi - 69) / 12);
+    }
+    return map;
+  })();
+
+  let audioCtx = null;
+  function getCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function playNote(note) {
+    const ctx = getCtx();
+    const freq = FREQ[note];
+    if (!freq) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 3000; filter.Q.value = 0.8;
+    osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'triangle'; osc.frequency.value = freq;
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.5, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.2, t + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
+    osc.start(t); osc.stop(t + 1.5);
+  }
+
+  // ── Build DOM ──────────────────────────────────────────────────────────────
+  const container = document.getElementById('keys');
+
+  WHITE_NOTES.forEach(note => {
+    const key = document.createElement('div');
+    key.className = 'key-white';
+    key.dataset.note = note;
+    const lbl = document.createElement('span');
+    lbl.className = 'label';
+    lbl.textContent = note.replace(/\d/, '');
+    key.appendChild(lbl);
+    container.appendChild(key);
+  });
+
+  const divLine = document.createElement('div');
+  divLine.className = 'octave-line';
+  divLine.id = 'octave-line';
+  container.appendChild(divLine);
+
+  BLACK_NOTE_DEFS.forEach(({ label, afterWhite }) => {
+    const key = document.createElement('div');
+    key.className = 'key-black';
+    key.dataset.note = label;
+    key.dataset.afterWhite = afterWhite;
+    const lbl = document.createElement('span');
+    lbl.className = 'label';
+    lbl.textContent = label.replace(/\d/, '');
+    key.appendChild(lbl);
+    container.appendChild(key);
+  });
+
+  // ── Responsive layout ──────────────────────────────────────────────────────
+  function layoutKeys() {
+    const totalW = container.offsetWidth;
+    const totalH = container.offsetHeight;
+    const ww = totalW / WHITE_NOTES.length;
+    const bw = ww * 0.62;
+    const bh = totalH * 0.62;
+
+    divLine.style.left   = (7 * ww) + 'px';
+    divLine.style.height = totalH + 'px';
+
+    document.querySelectorAll('.key-black').forEach(key => {
+      const aw = parseInt(key.dataset.afterWhite, 10);
+      key.style.left   = ((aw + 1) * ww - bw / 2) + 'px';
+      key.style.width  = bw + 'px';
+      key.style.height = bh + 'px';
+    });
+  }
+
+  layoutKeys();
+  window.addEventListener('resize', layoutKeys);
+
+  // ── Mouse interaction ──────────────────────────────────────────────────────
+  function trigger(el) {
+    if (!el?.dataset?.note) return;
+    playNote(el.dataset.note);
+    el.classList.add('active', 'ripple');
+    el.addEventListener('animationend', () => el.classList.remove('ripple'), { once: true });
+  }
+  function release(el) {
+    el?.classList?.remove('active');
+  }
+
+  container.addEventListener('mousedown', e => {
+    const k = e.target.closest('[data-note]');
+    if (k) { e.preventDefault(); trigger(k); }
+  });
+  container.addEventListener('mouseup', e => release(e.target.closest('[data-note]')));
+  container.addEventListener('mouseleave', () =>
+    document.querySelectorAll('.active').forEach(release));
+  container.addEventListener('mouseover', e => {
+    if (e.buttons !== 1) return;
+    const k = e.target.closest('[data-note]');
+    if (k && !k.classList.contains('active')) trigger(k);
+  });
+  container.addEventListener('mouseout', e => release(e.target.closest('[data-note]')));
+
+  // ── Touch interaction ──────────────────────────────────────────────────────
+  const activeTouch = new Map();
+
+  function keyAt(x, y) {
+    // Black keys first (on top)
+    for (const k of document.querySelectorAll('.key-black')) {
+      const r = k.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return k;
+    }
+    for (const k of document.querySelectorAll('.key-white')) {
+      const r = k.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return k;
+    }
+    return null;
+  }
+
+  container.addEventListener('touchstart', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      const k = keyAt(t.clientX, t.clientY);
+      if (k) { activeTouch.set(t.identifier, k); trigger(k); }
+    }
+  }, { passive: false });
+
+  container.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      const newKey = keyAt(t.clientX, t.clientY);
+      const oldKey = activeTouch.get(t.identifier);
+      if (newKey !== oldKey) {
+        if (oldKey) release(oldKey);
+        if (newKey) { trigger(newKey); activeTouch.set(t.identifier, newKey); }
+        else activeTouch.delete(t.identifier);
+      }
+    }
+  }, { passive: false });
+
+  function onTouchEnd(e) {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      release(activeTouch.get(t.identifier));
+      activeTouch.delete(t.identifier);
+    }
+  }
+  container.addEventListener('touchend',    onTouchEnd, { passive: false });
+  container.addEventListener('touchcancel', onTouchEnd, { passive: false });
+</script>
+</body>
+</html>

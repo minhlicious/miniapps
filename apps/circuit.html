@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circuit Simulator — Live DC Analysis</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;700&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0e17;
+            --surface: #111827;
+            --surface-2: #1a2235;
+            --accent: #22d3ee;
+            --accent-glow: rgba(34, 211, 238, 0.25);
+            --led-on: #34d399;
+            --led-glow: rgba(52, 211, 153, 0.6);
+            --danger: #f87171;
+            --wire: #334155;
+            --wire-active: #22d3ee;
+            --text: #e2e8f0;
+            --text-dim: #64748b;
+            --radius: 16px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .subtitle {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 960px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+
+        /* — Cards — */
+        .card {
+            background: var(--surface);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.5;
+        }
+
+        .card-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .card-title .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        /* — HUD Values — */
+        .hud {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+        .hud-item {
+            background: var(--surface-2);
+            border-radius: 12px;
+            padding: 1rem 0.75rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: border-color 0.3s;
+        }
+        .hud-item.active { border-color: var(--accent); }
+        .hud-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 0.4rem;
+        }
+        .hud-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--accent);
+            transition: color 0.3s;
+        }
+        .hud-unit {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* — Canvas — */
+        #circuitCanvas {
+            width: 100%;
+            height: 360px;
+            display: block;
+            cursor: pointer;
+        }
+
+        /* — Controls — */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .slider-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+        }
+        .slider-group label span {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--surface-2);
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+            cursor: grab;
+        }
+
+        .switch-btn {
+            grid-column: span 2;
+            padding: 0.9rem;
+            border-radius: 12px;
+            border: 2px solid var(--accent);
+            background: transparent;
+            color: var(--accent);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .switch-btn:hover {
+            background: var(--accent);
+            color: var(--bg);
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+        .switch-btn.on {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .switch-btn.on:hover {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 0 30px rgba(248,113,113,0.3);
+        }
+
+        /* — Formulas Card — */
+        .formulas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+        }
+        .formula-item {
+            background: var(--surface-2);
+            border-radius: 10px;
+            padding: 0.9rem 1rem;
+            border-left: 3px solid var(--accent);
+        }
+        .formula-name {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 0.35rem;
+        }
+        .formula-expr {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+        .formula-result {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--accent);
+            margin-top: 0.3rem;
+        }
+
+        /* — Status Badge — */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            background: rgba(100,116,139,0.15);
+            color: var(--text-dim);
+            transition: all 0.3s;
+        }
+        .status.on {
+            background: rgba(34,211,238,0.12);
+            color: var(--accent);
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--text-dim);
+            transition: all 0.3s;
+        }
+        .status.on .status-dot {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.3); }
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .hud { grid-template-columns: repeat(2, 1fr); }
+            .controls { grid-template-columns: 1fr; }
+            .switch-btn { grid-column: span 1; }
+            .formulas-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>⚡ Circuit Simulator</h1>
+<p class="subtitle">Interactive DC Analysis Lab</p>
+
+<div class="app">
+
+    <!-- HUD -->
+    <div class="card">
+        <div class="header-row">
+            <div class="card-title"><span class="dot"></span> Live Readings</div>
+            <div class="status" id="circuitStatus">
+                <span class="status-dot"></span>
+                Circuit Off
+            </div>
+        </div>
+        <div class="hud">
+            <div class="hud-item" id="hud-v">
+                <div class="hud-label">Source Voltage</div>
+                <div class="hud-value" id="hud-v-val">9.0</div>
+                <span class="hud-unit">Volts (V)</span>
+            </div>
+            <div class="hud-item" id="hud-rtotal">
+                <div class="hud-label">Total Resistance</div>
+                <div class="hud-value" id="hud-r-val">440</div>
+                <span class="hud-unit">Ohms (Ω)</span>
+            </div>
+            <div class="hud-item" id="hud-i">
+                <div class="hud-label">Current</div>
+                <div class="hud-value" id="hud-i-val">0.0</div>
+                <span class="hud-unit">mA</span>
+            </div>
+            <div class="hud-item" id="hud-p">
+                <div class="hud-label">Power</div>
+                <div class="hud-value" id="hud-p-val">0.0</div>
+                <span class="hud-unit">mW</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Circuit Diagram -->
+    <div class="card">
+        <div class="card-title"><span class="dot"></span> Circuit Diagram — Click switch to toggle</div>
+        <canvas id="circuitCanvas"></canvas>
+    </div>
+
+    <!-- Controls -->
+    <div class="card">
+        <div class="card-title"><span class="dot"></span> Parameters</div>
+        <div class="controls">
+            <div class="slider-group">
+                <label>Source Voltage (Vs) <span id="v-lbl">9.0 V</span></label>
+                <input type="range" id="v-slider" min="0" max="24" step="0.1" value="9">
+            </div>
+            <div class="slider-group">
+                <label>Resistor R₁ <span id="r1-lbl">220 Ω</span></label>
+                <input type="range" id="r1-slider" min="10" max="1000" step="1" value="220">
+            </div>
+            <div class="slider-group">
+                <label>Resistor R₂ <span id="r2-lbl">220 Ω</span></label>
+                <input type="range" id="r2-slider" min="10" max="1000" step="1" value="220">
+            </div>
+            <div class="slider-group">
+                <label>LED Forward Voltage <span id="vled-lbl">2.0 V</span></label>
+                <input type="range" id="vled-slider" min="0.5" max="5" step="0.1" value="2.0">
+            </div>
+            <button class="switch-btn" id="switchBtn">⚡ Close Switch — Power On</button>
+        </div>
+    </div>
+
+    <!-- Formulas -->
+    <div class="card">
+        <div class="card-title"><span class="dot"></span> Formulas & Calculations</div>
+        <div class="formulas-grid" id="formulasGrid">
+            <!-- filled by JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+const state = {
+    on: false,
+    V: 9, R1: 220, R2: 220, Vled: 2.0
+};
+
+// ── DOM refs ───────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const canvas = $('circuitCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+const DPR = window.devicePixelRatio || 1;
+
+function resize() {
+    const rect = canvas.getBoundingClientRect();
+    W = rect.width;
+    H = rect.height;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── Circuit geometry (relative to canvas) ──────────────
+function getCircuit() {
+    const pad = 40;
+    const l = pad, r = W - pad, t = pad, b = H - pad;
+    const midX = (l + r) / 2;
+    // Path: battery (left middle) → top-left → switch (top center) → top-right → R1 (right top) → R2 (right bottom) → bottom-right → LED (bottom center) → bottom-left → back to battery
+    return {
+        battery: { x: l, yTop: t + 40, yBot: b - 40, mid: (t + 40 + b - 40) / 2 },
+        switchPos: { x1: midX - 30, x2: midX + 30, y: t },
+        r1: { x: r, yTop: t + 40, yBot: (t + b) / 2 - 20 },
+        r2: { x: r, yTop: (t + b) / 2 + 20, yBot: b - 40 },
+        led: { x: midX, y: b },
+        corners: { tl: {x: l, y: t}, tr: {x: r, y: t}, br: {x: r, y: b}, bl: {x: l, y: b} },
+        bounds: { l, r, t, b, midX }
+    };
+}
+
+// Build the wire path as a series of points
+function getWirePath() {
+    const c = getCircuit();
+    const { l, r, t, b, midX } = c.bounds;
+    return [
+        {x: l, y: c.battery.yTop},          // 0  battery top terminal
+        {x: l, y: t},                        // 1  top-left corner
+        {x: c.switchPos.x1, y: t},           // 2  switch left
+        {x: c.switchPos.x2, y: t},           // 3  switch right
+        {x: r, y: t},                        // 4  top-right corner
+        {x: r, y: c.r1.yTop},               // 5  R1 top
+        {x: r, y: c.r1.yBot},               // 6  R1 bottom
+        {x: r, y: c.r2.yTop},               // 7  R2 top
+        {x: r, y: c.r2.yBot},               // 8  R2 bottom
+        {x: r, y: b},                        // 9  bottom-right corner
+        {x: midX + 15, y: b},               // 10 LED right
+        {x: midX - 15, y: b},               // 11 LED left
+        {x: l, y: b},                        // 12 bottom-left corner
+        {x: l, y: c.battery.yBot},          // 13 battery bottom terminal
+    ];
+}
+
+// ── Animated dots ──────────────────────────────────────
+let dotOffset = 0;
+const DOT_SPACING = 22;
+const DOT_RADIUS = 3;
+
+function getPathLength(pts) {
+    let len = 0;
+    for (let i = 1; i < pts.length; i++) {
+        const dx = pts[i].x - pts[i-1].x;
+        const dy = pts[i].y - pts[i-1].y;
+        len += Math.sqrt(dx*dx + dy*dy);
+    }
+    return len;
+}
+
+function getPointOnPath(pts, dist) {
+    let acc = 0;
+    for (let i = 1; i < pts.length; i++) {
+        const dx = pts[i].x - pts[i-1].x;
+        const dy = pts[i].y - pts[i-1].y;
+        const seg = Math.sqrt(dx*dx + dy*dy);
+        if (acc + seg >= dist) {
+            const t = (dist - acc) / seg;
+            return { x: pts[i-1].x + dx * t, y: pts[i-1].y + dy * t };
+        }
+        acc += seg;
+    }
+    return pts[pts.length - 1];
+}
+
+// ── Draw helpers ───────────────────────────────────────
+function drawWire(pts, color, width) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
+function drawBattery(x, yTop, yBot) {
+    const mid = (yTop + yBot) / 2;
+    const gap = 12;
+    // Wires to terminals
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, yTop); ctx.lineTo(x, mid - gap - 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, yBot); ctx.lineTo(x, mid + gap + 6); ctx.stroke();
+    // Long line (positive)
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x - 16, mid - gap); ctx.lineTo(x + 16, mid - gap); ctx.stroke();
+    // Short line (negative)
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x - 10, mid - gap + 12); ctx.lineTo(x + 10, mid - gap + 12); ctx.stroke();
+    // Second pair
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x - 16, mid + gap - 6); ctx.lineTo(x + 16, mid + gap - 6); ctx.stroke();
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x - 10, mid + gap + 6); ctx.lineTo(x + 10, mid + gap + 6); ctx.stroke();
+    // Labels
+    ctx.fillStyle = '#facc15';
+    ctx.font = '700 14px JetBrains Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText('+', x - 22, mid - gap + 5);
+    ctx.fillText('−', x - 22, mid + gap + 8);
+    // Box
+    ctx.strokeStyle = 'rgba(250,204,21,0.2)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 20, mid - gap - 10, 40, (gap * 2) + 20);
+    // Label
+    ctx.fillStyle = '#facc15';
+    ctx.font = '600 11px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(state.V.toFixed(1) + ' V', x, yBot + 18);
+}
+
+function drawResistor(x, yTop, yBot, label, ohms) {
+    const h = yBot - yTop;
+    const zigzags = 6;
+    const amp = 14;
+    const segH = h / zigzags;
+    ctx.beginPath();
+    ctx.moveTo(x, yTop);
+    for (let i = 0; i < zigzags; i++) {
+        const dir = i % 2 === 0 ? 1 : -1;
+        ctx.lineTo(x + amp * dir, yTop + segH * (i + 0.5));
+    }
+    ctx.lineTo(x, yBot);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    // Label
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = '700 12px JetBrains Mono';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, x + 20, (yTop + yBot) / 2 - 6);
+    ctx.font = '600 10px JetBrains Mono';
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillText(ohms + ' Ω', x + 20, (yTop + yBot) / 2 + 10);
+}
+
+function drawSwitch(x1, x2, y, isOn) {
+    // Terminals
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath(); ctx.arc(x1, y, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x2, y, 5, 0, Math.PI * 2); ctx.fill();
+    // Arm
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    if (isOn) {
+        ctx.lineTo(x2, y);
+        ctx.strokeStyle = var_accent();
+    } else {
+        ctx.lineTo(x2, y - 28);
+        ctx.strokeStyle = '#f87171';
+    }
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    // Label
+    ctx.fillStyle = isOn ? '#34d399' : '#f87171';
+    ctx.font = '700 11px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(isOn ? 'CLOSED' : 'OPEN', (x1 + x2) / 2, y - 32);
+    // Clickable hint
+    ctx.fillStyle = 'rgba(148,163,184,0.4)';
+    ctx.font = '500 9px Inter';
+    ctx.fillText('click to toggle', (x1 + x2) / 2, y + 18);
+}
+
+function var_accent() { return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#22d3ee'; }
+
+function drawLED(x, y, brightness) {
+    // Glow
+    if (brightness > 0) {
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, 35);
+        grad.addColorStop(0, `rgba(52, 211, 153, ${brightness * 0.7})`);
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(x, y, 35, 0, Math.PI * 2); ctx.fill();
+    }
+    // Triangle (anode side)
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y + 10);
+    ctx.lineTo(x + 10, y + 10);
+    ctx.lineTo(x, y - 8);
+    ctx.closePath();
+    ctx.fillStyle = brightness > 0 ? `rgba(52,211,153,${0.3 + brightness * 0.7})` : '#1e293b';
+    ctx.fill();
+    ctx.strokeStyle = brightness > 0 ? '#34d399' : '#475569';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Bar (cathode)
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y - 8);
+    ctx.lineTo(x + 10, y - 8);
+    ctx.strokeStyle = brightness > 0 ? '#34d399' : '#475569';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    // Emission arrows
+    if (brightness > 0) {
+        ctx.strokeStyle = `rgba(52,211,153,${brightness})`;
+        ctx.lineWidth = 1.5;
+        drawArrow(x - 16, y - 14, x - 24, y - 22);
+        drawArrow(x - 10, y - 18, x - 16, y - 28);
+    }
+    // Label
+    ctx.fillStyle = brightness > 0 ? '#34d399' : '#64748b';
+    ctx.font = '700 11px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('LED', x, y + 26);
+}
+
+function drawArrow(x1, y1, x2, y2) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const headLen = 5;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle - 0.5), y2 - headLen * Math.sin(angle - 0.5));
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLen * Math.cos(angle + 0.5), y2 - headLen * Math.sin(angle + 0.5));
+    ctx.stroke();
+}
+
+// ── Click detection for switch ─────────────────────────
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const c = getCircuit();
+    const sx = (c.switchPos.x1 + c.switchPos.x2) / 2;
+    const sy = c.switchPos.y;
+    if (Math.abs(mx - sx) < 45 && Math.abs(my - sy) < 35) {
+        state.on = !state.on;
+        updateUI();
+    }
+});
+
+// ── Calculations ───────────────────────────────────────
+function calc() {
+    const Rtotal = state.R1 + state.R2;
+    const Veff = Math.max(state.V - state.Vled, 0);
+    const I = state.on ? (Rtotal > 0 ? Veff / Rtotal : 0) : 0;
+    const ImA = I * 1000;
+    const VR1 = I * state.R1;
+    const VR2 = I * state.R2;
+    const P = state.V * I * 1000; // mW
+    return { Rtotal, Veff, I, ImA, VR1, VR2, P };
+}
+
+// ── Update UI ──────────────────────────────────────────
+function updateUI() {
+    const d = calc();
+
+    // HUD
+    $('hud-v-val').textContent = state.V.toFixed(1);
+    $('hud-r-val').textContent = d.Rtotal;
+    $('hud-i-val').textContent = d.ImA.toFixed(2);
+    $('hud-p-val').textContent = d.P.toFixed(1);
+
+    // HUD active states
+    document.querySelectorAll('.hud-item').forEach(el => el.classList.toggle('active', state.on && d.I > 0));
+
+    // Status badge
+    const statusEl = $('circuitStatus');
+    statusEl.className = 'status' + (state.on && d.I > 0 ? ' on' : '');
+    statusEl.innerHTML = `<span class="status-dot"></span>${state.on ? (d.I > 0 ? 'Current Flowing' : 'No Current') : 'Circuit Off'}`;
+
+    // Switch button
+    const btn = $('switchBtn');
+    if (state.on) {
+        btn.textContent = '⛔ Open Switch — Power Off';
+        btn.className = 'switch-btn on';
+    } else {
+        btn.textContent = '⚡ Close Switch — Power On';
+        btn.className = 'switch-btn';
+    }
+
+    // Slider labels
+    $('v-lbl').textContent = state.V.toFixed(1) + ' V';
+    $('r1-lbl').textContent = state.R1 + ' Ω';
+    $('r2-lbl').textContent = state.R2 + ' Ω';
+    $('vled-lbl').textContent = state.Vled.toFixed(1) + ' V';
+
+    // Formulas
+    updateFormulas(d);
+}
+
+function updateFormulas(d) {
+    const on = state.on && d.I > 0;
+    const formulas = [
+        {
+            name: 'Total Resistance (Series)',
+            expr: `R_total = R₁ + R₂`,
+            result: `= ${state.R1} + ${state.R2} = ${d.Rtotal} Ω`
+        },
+        {
+            name: 'Effective Voltage',
+            expr: `V_eff = Vs − V_LED`,
+            result: `= ${state.V.toFixed(1)} − ${state.Vled.toFixed(1)} = ${d.Veff.toFixed(1)} V`
+        },
+        {
+            name: "Ohm's Law — Current",
+            expr: `I = V_eff / R_total`,
+            result: on ? `= ${d.Veff.toFixed(1)} / ${d.Rtotal} = ${d.ImA.toFixed(2)} mA` : '= 0 mA (switch open)'
+        },
+        {
+            name: 'Voltage across R₁',
+            expr: `V_R1 = I × R₁`,
+            result: on ? `= ${d.ImA.toFixed(2)}mA × ${state.R1}Ω = ${d.VR1.toFixed(2)} V` : '= 0 V'
+        },
+        {
+            name: 'Voltage across R₂',
+            expr: `V_R2 = I × R₂`,
+            result: on ? `= ${d.ImA.toFixed(2)}mA × ${state.R2}Ω = ${d.VR2.toFixed(2)} V` : '= 0 V'
+        },
+        {
+            name: 'Power Dissipated',
+            expr: `P = Vs × I`,
+            result: on ? `= ${state.V.toFixed(1)} × ${d.ImA.toFixed(2)}mA = ${d.P.toFixed(1)} mW` : '= 0 mW'
+        }
+    ];
+
+    $('formulasGrid').innerHTML = formulas.map(f => `
+        <div class="formula-item">
+            <div class="formula-name">${f.name}</div>
+            <div class="formula-expr">${f.expr}</div>
+            <div class="formula-result">${f.result}</div>
+        </div>
+    `).join('');
+}
+
+// ── Slider bindings ────────────────────────────────────
+$('v-slider').oninput = e => { state.V = parseFloat(e.target.value); updateUI(); };
+$('r1-slider').oninput = e => { state.R1 = parseInt(e.target.value); updateUI(); };
+$('r2-slider').oninput = e => { state.R2 = parseInt(e.target.value); updateUI(); };
+$('vled-slider').oninput = e => { state.Vled = parseFloat(e.target.value); updateUI(); };
+$('switchBtn').onclick = () => { state.on = !state.on; updateUI(); };
+
+// ── Main render loop ───────────────────────────────────
+let lastTime = 0;
+
+function render(ts) {
+    const dt = ts - lastTime;
+    lastTime = ts;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const c = getCircuit();
+    const path = getWirePath();
+    const d = calc();
+
+    // Draw wire background
+    drawWire(path, '#1e293b', 8);
+    drawWire(path, state.on && d.I > 0 ? 'rgba(34,211,238,0.12)' : '#1e293b', 4);
+
+    // Draw wire (visible path but skip component segments)
+    // Segment: battery top → TL corner → switch left
+    drawSegment(path, 0, 2, '#334155', 3);
+    // Switch right → TR → R1 top
+    drawSegment(path, 3, 5, '#334155', 3);
+    // R1 bottom → R2 top
+    drawSegment(path, 6, 7, '#334155', 3);
+    // R2 bottom → BR → LED right
+    drawSegment(path, 8, 10, '#334155', 3);
+    // LED left → BL → battery bottom
+    drawSegment(path, 11, 13, '#334155', 3);
+
+    // Components
+    drawBattery(c.battery.x, c.battery.yTop, c.battery.yBot);
+    drawSwitch(c.switchPos.x1, c.switchPos.x2, c.switchPos.y, state.on);
+    drawResistor(c.r1.x, c.r1.yTop, c.r1.yBot, 'R₁', state.R1);
+    drawResistor(c.r2.x, c.r2.yTop, c.r2.yBot, 'R₂', state.R2);
+
+    const brightness = state.on && d.I > 0 ? Math.min(d.I * 500, 1) : 0;
+    drawLED(c.led.x, c.led.y, brightness);
+
+    // Animated current dots
+    if (state.on && d.I > 0) {
+        const totalLen = getPathLength(path);
+        const speed = 40 + d.ImA * 3; // pixels per second based on current
+        dotOffset = (dotOffset + (speed * dt) / 1000) % DOT_SPACING;
+
+        ctx.fillStyle = '#22d3ee';
+        ctx.shadowColor = '#22d3ee';
+        ctx.shadowBlur = 8;
+
+        for (let dist = dotOffset; dist < totalLen; dist += DOT_SPACING) {
+            const pt = getPointOnPath(path, dist);
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, DOT_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+    }
+
+    // Direction arrows on wires when active
+    if (state.on && d.I > 0) {
+        const totalLen = getPathLength(path);
+        ctx.fillStyle = 'rgba(34,211,238,0.5)';
+        ctx.font = '14px Inter';
+        ctx.textAlign = 'center';
+        // Draw a few direction indicators
+        const positions = [0.08, 0.3, 0.55, 0.78];
+        positions.forEach(p => {
+            const pt1 = getPointOnPath(path, totalLen * p);
+            const pt2 = getPointOnPath(path, totalLen * (p + 0.01));
+            const angle = Math.atan2(pt2.y - pt1.y, pt2.x - pt1.x);
+            ctx.save();
+            ctx.translate(pt1.x, pt1.y);
+            ctx.rotate(angle);
+            ctx.fillStyle = 'rgba(34,211,238,0.35)';
+            ctx.beginPath();
+            ctx.moveTo(8, 0);
+            ctx.lineTo(-4, -5);
+            ctx.lineTo(-4, 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        });
+    }
+
+    requestAnimationFrame(render);
+}
+
+function drawSegment(pts, from, to, color, width) {
+    if (from >= pts.length || to >= pts.length) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[from].x, pts[from].y);
+    for (let i = from + 1; i <= to; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
+// ── Init ───────────────────────────────────────────────
+updateUI();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physics Formula Practice Tool</title>
+  <meta name="description" content="Interactive physics formula solver with step-by-step solutions for Ohm's Law, Kinetic Energy, and Newton's Second Law.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-glass: rgba(255, 255, 255, 0.04);
+      --border-glass: rgba(255, 255, 255, 0.08);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-blue-glow: rgba(59, 130, 246, 0.25);
+      --accent-purple: #8b5cf6;
+      --accent-purple-glow: rgba(139, 92, 246, 0.25);
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.25);
+      --accent-amber: #f59e0b;
+      --accent-amber-glow: rgba(245, 158, 11, 0.25);
+      --error: #ef4444;
+      --error-bg: rgba(239, 68, 68, 0.1);
+      --error-border: rgba(239, 68, 68, 0.3);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.08);
+      --success-border: rgba(16, 185, 129, 0.2);
+      --radius: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                  radial-gradient(ellipse at 50% 90%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+      animation: bgShift 20s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes bgShift {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      100% { transform: translate(-3%, -3%) rotate(3deg); }
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      margin-bottom: 16px;
+      font-size: 26px;
+      box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-top: 8px;
+    }
+
+    /* Formula Cards */
+    .formula-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .formula-card {
+      position: relative;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 20px 14px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+
+    .formula-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-lg);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .formula-card[data-color="blue"]::before {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.02));
+    }
+
+    .formula-card[data-color="purple"]::before {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.02));
+    }
+
+    .formula-card[data-color="emerald"]::before {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.02));
+    }
+
+    .formula-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .formula-card:hover::before {
+      opacity: 1;
+    }
+
+    .formula-card.active {
+      transform: translateY(-2px);
+    }
+
+    .formula-card.active::before {
+      opacity: 1;
+    }
+
+    .formula-card.active[data-color="blue"] {
+      border-color: rgba(59, 130, 246, 0.5);
+      box-shadow: 0 4px 20px var(--accent-blue-glow);
+    }
+
+    .formula-card.active[data-color="purple"] {
+      border-color: rgba(139, 92, 246, 0.5);
+      box-shadow: 0 4px 20px var(--accent-purple-glow);
+    }
+
+    .formula-card.active[data-color="emerald"] {
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 4px 20px var(--accent-emerald-glow);
+    }
+
+    .formula-card-icon {
+      font-size: 24px;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .formula-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .formula-card-eq {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      position: relative;
+      z-index: 1;
+    }
+
+    .formula-card.active[data-color="blue"] .formula-card-eq { color: var(--accent-blue); }
+    .formula-card.active[data-color="purple"] .formula-card-eq { color: var(--accent-purple); }
+    .formula-card.active[data-color="emerald"] .formula-card-eq { color: var(--accent-emerald); }
+
+    /* Input Panel */
+    .input-panel {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(12px);
+      transition: all 0.4s ease;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .panel-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .panel-badge.blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+    .panel-badge.purple { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); }
+    .panel-badge.emerald { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+
+    .panel-instruction {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .input-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .input-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .input-label-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .input-label-unit {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 500;
+      transition: all 0.25s ease;
+      outline: none;
+    }
+
+    .input-field::placeholder {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 13px;
+    }
+
+    .input-field:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px var(--accent-blue-glow);
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    .input-field.error {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px var(--error-bg);
+    }
+
+    .error-msg {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: 8px;
+      color: var(--error);
+      font-size: 12px;
+      font-weight: 500;
+      animation: slideIn 0.25s ease;
+    }
+
+    .error-msg.visible {
+      display: flex;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 13px 24px;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: white;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glass);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+
+    /* Solution Panel */
+    .solution-panel {
+      background: var(--bg-glass);
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      animation: fadeUp 0.4s ease;
+      display: none;
+    }
+
+    .solution-panel.visible {
+      display: block;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .solution-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-glass);
+    }
+
+    .solution-header-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .solution-header-text h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .solution-header-text p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .solution-step {
+      position: relative;
+      padding: 16px 0 16px 36px;
+    }
+
+    .solution-step::before {
+      content: '';
+      position: absolute;
+      left: 12px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: var(--border-glass);
+    }
+
+    .solution-step:last-child::before {
+      bottom: 50%;
+    }
+
+    .step-number {
+      position: absolute;
+      left: 2px;
+      top: 16px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-glass);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .step-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .step-formula {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .solution-step.final .step-number {
+      background: var(--success-bg);
+      border-color: var(--success-border);
+      color: var(--success);
+    }
+
+    .solution-step.final .step-formula {
+      background: var(--success-bg);
+      border-color: var(--success-border);
+      color: var(--success);
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 520px) {
+      .formula-selector {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .formula-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+        padding: 14px 16px;
+      }
+      .formula-card-icon { margin-bottom: 0; font-size: 20px; }
+      .formula-card-title { margin-bottom: 2px; }
+      .container { padding: 24px 16px 40px; }
+      .input-panel, .solution-panel { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-icon">⚡</div>
+      <h1>Physics Formula Solver</h1>
+      <p>Select a formula, enter known values, and solve step by step</p>
+    </div>
+
+    <!-- Formula Selector -->
+    <div class="formula-selector" id="formulaSelector">
+      <div class="formula-card active" data-formula="ohm" data-color="blue" id="card-ohm">
+        <div class="formula-card-icon">🔌</div>
+        <div>
+          <div class="formula-card-title">Ohm's Law</div>
+          <div class="formula-card-eq">V = IR</div>
+        </div>
+      </div>
+      <div class="formula-card" data-formula="ke" data-color="purple" id="card-ke">
+        <div class="formula-card-icon">💨</div>
+        <div>
+          <div class="formula-card-title">Kinetic Energy</div>
+          <div class="formula-card-eq">KE = ½mv²</div>
+        </div>
+      </div>
+      <div class="formula-card" data-formula="newton" data-color="emerald" id="card-newton">
+        <div class="formula-card-icon">🍎</div>
+        <div>
+          <div class="formula-card-title">Newton's 2nd</div>
+          <div class="formula-card-eq">F = ma</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Panel -->
+    <div class="input-panel" id="inputPanel">
+      <div class="panel-header">
+        <span class="panel-badge blue" id="panelBadge">Ohm's Law</span>
+        <span class="panel-instruction" id="panelInstruction">Leave one field blank to solve for it</span>
+      </div>
+      <div class="input-grid" id="inputGrid">
+        <!-- Inputs rendered by JS -->
+      </div>
+      <div class="error-msg" id="globalError">
+        <span>⚠️</span>
+        <span id="globalErrorText"></span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="btnClear" type="button">Clear</button>
+        <button class="btn btn-primary" id="btnSolve" type="button">Solve →</button>
+      </div>
+    </div>
+
+    <!-- Solution Panel -->
+    <div class="solution-panel" id="solutionPanel"></div>
+  </div>
+
+  <script>
+    // ── Formula Definitions ───────────────────────────────────────
+    const FORMULAS = {
+      ohm: {
+        name: "Ohm's Law",
+        equation: "V = I × R",
+        color: "blue",
+        vars: [
+          { key: "V", label: "Voltage (V)", unit: "Volts (V)", placeholder: "e.g. 12" },
+          { key: "I", label: "Current (I)", unit: "Amperes (A)", placeholder: "e.g. 2" },
+          { key: "R", label: "Resistance (R)", unit: "Ohms (Ω)", placeholder: "e.g. 6" },
+        ],
+        solve(known, unknownKey) {
+          const steps = [];
+          steps.push({ label: "Start with the formula", formula: "V = I × R" });
+
+          if (unknownKey === "V") {
+            steps.push({ label: "We need to find V", formula: "V = I × R" });
+            steps.push({ label: "Substitute known values", formula: `V = ${known.I} × ${known.R}` });
+            const result = known.I * known.R;
+            steps.push({ label: "Calculate", formula: `V = ${formatNum(result)} V`, final: true });
+            return { result, unit: "V", steps };
+          }
+          if (unknownKey === "I") {
+            steps.push({ label: "Rearrange to find I", formula: "I = V ÷ R" });
+            steps.push({ label: "Substitute known values", formula: `I = ${known.V} ÷ ${known.R}` });
+            const result = known.V / known.R;
+            steps.push({ label: "Calculate", formula: `I = ${formatNum(result)} A`, final: true });
+            return { result, unit: "A", steps };
+          }
+          if (unknownKey === "R") {
+            steps.push({ label: "Rearrange to find R", formula: "R = V ÷ I" });
+            steps.push({ label: "Substitute known values", formula: `R = ${known.V} ÷ ${known.I}` });
+            const result = known.V / known.I;
+            steps.push({ label: "Calculate", formula: `R = ${formatNum(result)} Ω`, final: true });
+            return { result, unit: "Ω", steps };
+          }
+        },
+        validate(known, unknownKey) {
+          if (unknownKey === "I" && known.R === 0) return "Resistance cannot be zero when solving for Current (division by zero).";
+          if (unknownKey === "R" && known.I === 0) return "Current cannot be zero when solving for Resistance (division by zero).";
+          for (const k of Object.keys(known)) {
+            if (known[k] < 0) return `${k} cannot be negative.`;
+          }
+          return null;
+        }
+      },
+      ke: {
+        name: "Kinetic Energy",
+        equation: "KE = ½mv²",
+        color: "purple",
+        vars: [
+          { key: "KE", label: "Kinetic Energy (KE)", unit: "Joules (J)", placeholder: "e.g. 100" },
+          { key: "m", label: "Mass (m)", unit: "Kilograms (kg)", placeholder: "e.g. 5" },
+          { key: "v", label: "Velocity (v)", unit: "m/s", placeholder: "e.g. 10" },
+        ],
+        solve(known, unknownKey) {
+          const steps = [];
+          steps.push({ label: "Start with the formula", formula: "KE = ½ × m × v²" });
+
+          if (unknownKey === "KE") {
+            steps.push({ label: "We need to find KE", formula: "KE = ½ × m × v²" });
+            steps.push({ label: "Substitute known values", formula: `KE = ½ × ${known.m} × ${known.v}²` });
+            const vSquared = known.v * known.v;
+            steps.push({ label: "Calculate v²", formula: `KE = ½ × ${known.m} × ${formatNum(vSquared)}` });
+            const mTimesV2 = known.m * vSquared;
+            steps.push({ label: "Multiply m × v²", formula: `KE = ½ × ${formatNum(mTimesV2)}` });
+            const result = 0.5 * mTimesV2;
+            steps.push({ label: "Calculate", formula: `KE = ${formatNum(result)} J`, final: true });
+            return { result, unit: "J", steps };
+          }
+          if (unknownKey === "m") {
+            steps.push({ label: "Rearrange to find m", formula: "m = 2 × KE ÷ v²" });
+            steps.push({ label: "Substitute known values", formula: `m = 2 × ${known.KE} ÷ ${known.v}²` });
+            const vSquared = known.v * known.v;
+            steps.push({ label: "Calculate v²", formula: `m = 2 × ${known.KE} ÷ ${formatNum(vSquared)}` });
+            const numerator = 2 * known.KE;
+            steps.push({ label: "Calculate 2 × KE", formula: `m = ${formatNum(numerator)} ÷ ${formatNum(vSquared)}` });
+            const result = numerator / vSquared;
+            steps.push({ label: "Calculate", formula: `m = ${formatNum(result)} kg`, final: true });
+            return { result, unit: "kg", steps };
+          }
+          if (unknownKey === "v") {
+            steps.push({ label: "Rearrange to find v", formula: "v = √(2 × KE ÷ m)" });
+            steps.push({ label: "Substitute known values", formula: `v = √(2 × ${known.KE} ÷ ${known.m})` });
+            const numerator = 2 * known.KE;
+            steps.push({ label: "Calculate 2 × KE", formula: `v = √(${formatNum(numerator)} ÷ ${known.m})` });
+            const inner = numerator / known.m;
+            steps.push({ label: "Divide", formula: `v = √(${formatNum(inner)})` });
+            const result = Math.sqrt(inner);
+            steps.push({ label: "Calculate square root", formula: `v = ${formatNum(result)} m/s`, final: true });
+            return { result, unit: "m/s", steps };
+          }
+        },
+        validate(known, unknownKey) {
+          if ("m" in known && known.m < 0) return "Mass cannot be negative.";
+          if ("m" in known && known.m === 0 && unknownKey !== "m") {
+            if (unknownKey === "v") return "Mass cannot be zero when solving for Velocity (division by zero).";
+          }
+          if ("KE" in known && known.KE < 0) return "Kinetic Energy cannot be negative.";
+          if (unknownKey === "m" && known.v === 0) return "Velocity cannot be zero when solving for Mass (division by zero).";
+          if (unknownKey === "v" && known.m === 0) return "Mass cannot be zero when solving for Velocity (division by zero).";
+          return null;
+        }
+      },
+      newton: {
+        name: "Newton's Second Law",
+        equation: "F = ma",
+        color: "emerald",
+        vars: [
+          { key: "F", label: "Force (F)", unit: "Newtons (N)", placeholder: "e.g. 50" },
+          { key: "m", label: "Mass (m)", unit: "Kilograms (kg)", placeholder: "e.g. 10" },
+          { key: "a", label: "Acceleration (a)", unit: "m/s²", placeholder: "e.g. 5" },
+        ],
+        solve(known, unknownKey) {
+          const steps = [];
+          steps.push({ label: "Start with the formula", formula: "F = m × a" });
+
+          if (unknownKey === "F") {
+            steps.push({ label: "We need to find F", formula: "F = m × a" });
+            steps.push({ label: "Substitute known values", formula: `F = ${known.m} × ${known.a}` });
+            const result = known.m * known.a;
+            steps.push({ label: "Calculate", formula: `F = ${formatNum(result)} N`, final: true });
+            return { result, unit: "N", steps };
+          }
+          if (unknownKey === "m") {
+            steps.push({ label: "Rearrange to find m", formula: "m = F ÷ a" });
+            steps.push({ label: "Substitute known values", formula: `m = ${known.F} ÷ ${known.a}` });
+            const result = known.F / known.a;
+            steps.push({ label: "Calculate", formula: `m = ${formatNum(result)} kg`, final: true });
+            return { result, unit: "kg", steps };
+          }
+          if (unknownKey === "a") {
+            steps.push({ label: "Rearrange to find a", formula: "a = F ÷ m" });
+            steps.push({ label: "Substitute known values", formula: `a = ${known.F} ÷ ${known.m}` });
+            const result = known.F / known.m;
+            steps.push({ label: "Calculate", formula: `a = ${formatNum(result)} m/s²`, final: true });
+            return { result, unit: "m/s²", steps };
+          }
+        },
+        validate(known, unknownKey) {
+          if ("m" in known && known.m < 0) return "Mass cannot be negative.";
+          if (unknownKey === "m" && known.a === 0) return "Acceleration cannot be zero when solving for Mass (division by zero).";
+          if (unknownKey === "a" && known.m === 0) return "Mass cannot be zero when solving for Acceleration (division by zero).";
+          return null;
+        }
+      }
+    };
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function formatNum(n) {
+      if (Number.isInteger(n)) return n.toString();
+      const rounded = Math.round(n * 10000) / 10000;
+      return rounded.toString();
+    }
+
+    // ── State ─────────────────────────────────────────────────────
+    let currentFormula = "ohm";
+
+    // ── DOM refs ──────────────────────────────────────────────────
+    const formulaSelector = document.getElementById("formulaSelector");
+    const inputGrid = document.getElementById("inputGrid");
+    const panelBadge = document.getElementById("panelBadge");
+    const panelInstruction = document.getElementById("panelInstruction");
+    const globalError = document.getElementById("globalError");
+    const globalErrorText = document.getElementById("globalErrorText");
+    const solutionPanel = document.getElementById("solutionPanel");
+    const btnSolve = document.getElementById("btnSolve");
+    const btnClear = document.getElementById("btnClear");
+
+    // ── Render Inputs ─────────────────────────────────────────────
+    function renderInputs() {
+      const f = FORMULAS[currentFormula];
+      inputGrid.innerHTML = f.vars.map(v => `
+        <div class="input-group">
+          <div class="input-label">
+            <span class="input-label-text">${v.label}</span>
+            <span class="input-label-unit">${v.unit}</span>
+          </div>
+          <input
+            type="text"
+            inputmode="decimal"
+            class="input-field"
+            id="input-${v.key}"
+            placeholder="${v.placeholder}"
+            autocomplete="off"
+          >
+          <div class="error-msg" id="error-${v.key}">
+            <span>⚠️</span>
+            <span class="error-text"></span>
+          </div>
+        </div>
+      `).join("");
+
+      // Update badge
+      panelBadge.textContent = f.name;
+      panelBadge.className = `panel-badge ${f.color}`;
+
+      // Clear solution
+      solutionPanel.classList.remove("visible");
+      globalError.classList.remove("visible");
+    }
+
+    // ── Formula Selection ─────────────────────────────────────────
+    formulaSelector.addEventListener("click", e => {
+      const card = e.target.closest(".formula-card");
+      if (!card) return;
+      document.querySelectorAll(".formula-card").forEach(c => c.classList.remove("active"));
+      card.classList.add("active");
+      currentFormula = card.dataset.formula;
+      renderInputs();
+    });
+
+    // ── Clear ─────────────────────────────────────────────────────
+    btnClear.addEventListener("click", () => {
+      renderInputs();
+    });
+
+    // ── Solve ─────────────────────────────────────────────────────
+    btnSolve.addEventListener("click", () => {
+      clearErrors();
+      const f = FORMULAS[currentFormula];
+      const values = {};
+      let blankKey = null;
+      let blankCount = 0;
+      let hasError = false;
+
+      // Read & validate inputs
+      for (const v of f.vars) {
+        const input = document.getElementById(`input-${v.key}`);
+        const raw = input.value.trim();
+
+        if (raw === "") {
+          blankCount++;
+          blankKey = v.key;
+          continue;
+        }
+
+        const num = Number(raw);
+        if (isNaN(num)) {
+          showFieldError(v.key, `Please enter a valid number for ${v.label.split("(")[0].trim()}.`);
+          hasError = true;
+          continue;
+        }
+
+        values[v.key] = num;
+      }
+
+      if (hasError) return;
+
+      // Must leave exactly one blank
+      if (blankCount === 0) {
+        showGlobalError("Leave one field blank — that's the variable to solve for.");
+        return;
+      }
+      if (blankCount > 1) {
+        showGlobalError("Please fill in at least two fields. Leave only one blank to solve.");
+        return;
+      }
+
+      // Domain validation
+      const validationErr = f.validate(values, blankKey);
+      if (validationErr) {
+        showGlobalError(validationErr);
+        return;
+      }
+
+      // Solve
+      const solution = f.solve(values, blankKey);
+      renderSolution(solution, f, blankKey);
+    });
+
+    // ── Error Helpers ─────────────────────────────────────────────
+    function clearErrors() {
+      document.querySelectorAll(".input-field").forEach(el => el.classList.remove("error"));
+      document.querySelectorAll(".error-msg").forEach(el => el.classList.remove("visible"));
+      globalError.classList.remove("visible");
+    }
+
+    function showFieldError(key, msg) {
+      const input = document.getElementById(`input-${key}`);
+      const errorEl = document.getElementById(`error-${key}`);
+      input.classList.add("error");
+      errorEl.querySelector(".error-text").textContent = msg;
+      errorEl.classList.add("visible");
+    }
+
+    function showGlobalError(msg) {
+      globalErrorText.textContent = msg;
+      globalError.classList.add("visible");
+    }
+
+    // ── Render Solution ───────────────────────────────────────────
+    function renderSolution(solution, formula, unknownKey) {
+      const varInfo = formula.vars.find(v => v.key === unknownKey);
+      solutionPanel.innerHTML = `
+        <div class="solution-header">
+          <div class="solution-header-icon">✓</div>
+          <div class="solution-header-text">
+            <h3>Solution for ${varInfo.label}</h3>
+            <p>${formula.name} — ${formula.equation}</p>
+          </div>
+        </div>
+        ${solution.steps.map((s, i) => `
+          <div class="solution-step ${s.final ? 'final' : ''}">
+            <div class="step-number">${i + 1}</div>
+            <div class="step-label">${s.label}</div>
+            <div class="step-formula">${s.formula}</div>
+          </div>
+        `).join("")}
+      `;
+      solutionPanel.classList.add("visible");
+      solutionPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    renderInputs();
+  </script>
+</body>
+</html>
