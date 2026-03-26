@@ -365,6 +365,7 @@
     .app-card:nth-child(2) { animation-delay: 0.2s; }
     .app-card:nth-child(3) { animation-delay: 0.3s; }
     .app-card:nth-child(4) { animation-delay: 0.4s; }
+    .app-card:nth-child(5) { animation-delay: 0.5s; }
 
     @keyframes cardEnter {
       to { opacity: 1; transform: translateY(0); }
@@ -456,6 +457,26 @@
         </div>
       </a>
 
+      <!-- Vocal Coach -->
+      <a class="app-card" data-accent="amber" href="apps/vocal-coach.html" id="card-vocal-coach">
+        <div class="card-icon">🎙️</div>
+        <div class="card-content">
+          <div class="card-title">Vocal Coach</div>
+          <div class="card-description">Live speech practice tool — read from a script while your microphone tracks word accuracy, flags filler words, and scores your delivery in real time.</div>
+          <div class="card-tags">
+            <span class="tag">Speech API</span>
+            <span class="tag">Live Scoring</span>
+            <span class="tag">Filler Words</span>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="7" y1="17" x2="17" y2="7"/>
+            <polyline points="7 7 17 7 17 17"/>
+          </svg>
+        </div>
+      </a>
+
       <!-- Piano -->
       <a class="app-card" data-accent="amber" href="apps/piano.html" id="card-piano">
         <div class="card-icon">🎹</div>
@@ -480,7 +501,7 @@
 
     <!-- Footer -->
     <div class="footer">
-      <p>4 apps · Built with vanilla HTML, CSS & JavaScript</p>
+      <p>5 apps · Built with vanilla HTML, CSS & JavaScript</p>
     </div>
   </div>
 </body>
