@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orator — Vocal Coach</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!-- PLACEHOLDER: replace src with your inhale audio file -->
+<audio id="audio-inhale" src=""></audio>
+<!-- PLACEHOLDER: replace src with your hold audio file -->
+<audio id="audio-hold" src=""></audio>
+<!-- PLACEHOLDER: replace src with your exhale audio file -->
+<audio id="audio-exhale" src=""></audio>
+<!-- PLACEHOLDER: replace src with your countdown beep audio -->
+<audio id="audio-countdown" src=""></audio>
+<!-- PLACEHOLDER: replace src with your filler word alert audio -->
+<audio id="audio-filler-alert" src=""></audio>
+
+<style>
+  :root {
+    --cream: #f7f4ef;
+    --cream-dark: #ede9e2;
+    --sage: #7a8c6e;
+    --sage-light: #b5c5a8;
+    --sage-pale: #e8ede4;
+    --amber: #c8833a;
+    --amber-light: #e8b07a;
+    --amber-pale: #fdf0e3;
+    --charcoal: #2d2d2a;
+    --muted: #7a7670;
+    --border: #d8d3cb;
+    --shadow: rgba(45,45,42,0.08);
+    --shadow-md: rgba(45,45,42,0.14);
+    --red-soft: #c0533a;
+    --yellow-soft: #c09a2a;
+    --green-soft: #5a8a5a;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--cream);
+    color: var(--charcoal);
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── DISCLAIMER BANNER ── */
+  #disclaimer {
+    background: var(--amber-pale);
+    border-bottom: 1px solid var(--amber-light);
+    padding: 12px 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 0.82rem;
+    color: var(--charcoal);
+    line-height: 1.5;
+  }
+  #disclaimer .disc-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+  #disclaimer .disc-text { flex: 1; }
+  #disclaimer .disc-text strong { color: var(--amber); }
+  #disclaimer button {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 1.1rem; line-height: 1;
+    padding: 2px 6px; flex-shrink: 0; transition: color 0.2s;
+  }
+  #disclaimer button:hover { color: var(--charcoal); }
+
+  /* ── HEADER ── */
+  header {
+    padding: 32px 48px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--charcoal);
+  }
+  .logo span { color: var(--sage); font-style: italic; }
+  .tagline {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── TABS ── */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    padding: 28px 48px 0;
+    border-bottom: 1.5px solid var(--border);
+    margin: 0 0 0 0;
+  }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--muted);
+    padding: 10px 24px 14px;
+    position: relative;
+    transition: color 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .tab-btn::after {
+    content: '';
+    position: absolute;
+    bottom: -1.5px;
+    left: 0; right: 0;
+    height: 2px;
+    background: var(--sage);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .tab-btn.active { color: var(--charcoal); }
+  .tab-btn.active::after { opacity: 1; }
+  .tab-btn:hover { color: var(--charcoal); }
+
+  /* ── PANELS ── */
+  .panel { display: none; padding: 36px 48px 64px; max-width: 960px; }
+  .panel.active { display: block; }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  /* ── BREATHING PANEL ── */
+  .breathing-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  @media (max-width: 700px) { .breathing-layout { grid-template-columns: 1fr; } }
+
+  .breathing-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .control-group label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .mode-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    padding: 7px 16px;
+    border-radius: 100px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-family: var(--font-body);
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pill:hover { border-color: var(--sage); color: var(--sage); }
+  .pill.active {
+    background: var(--sage);
+    border-color: var(--sage);
+    color: white;
+  }
+
+  .cycle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cycle-row input[type=range] {
+    flex: 1;
+    accent-color: var(--sage);
+    height: 4px;
+  }
+  .cycle-val {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .btn-primary {
+    background: var(--sage);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 13px 32px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .btn-primary:hover { background: #6a7c5e; transform: translateY(-1px); box-shadow: 0 4px 12px var(--shadow-md); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: white;
+    color: var(--charcoal);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 28px;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--sage); color: var(--sage); }
+
+  /* ── BREATHING VISUAL ── */
+  .breathing-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 24px 0;
+  }
+
+  .breath-circle-wrap {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .breath-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid var(--sage-light);
+    opacity: 0.4;
+    transition: transform 0.1s linear, opacity 0.3s;
+  }
+  .breath-ring-outer { width: 220px; height: 220px; }
+  .breath-ring-mid { width: 180px; height: 180px; }
+
+  .breath-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, var(--sage-light), var(--sage));
+    box-shadow: 0 0 40px rgba(122,140,110,0.3);
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .breath-phase {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    color: white;
+    font-weight: 400;
+    font-style: italic;
+    text-align: center;
+    user-select: none;
+  }
+
+  .breath-info {
+    text-align: center;
+  }
+  .breath-phase-label {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    font-family: var(--font-display);
+    margin-bottom: 4px;
+  }
+  .breath-countdown {
+    font-size: 2.4rem;
+    font-family: var(--font-display);
+    font-weight: 400;
+    color: var(--sage);
+    line-height: 1;
+  }
+  .breath-cycles-left {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── LIVE PRACTICE PANEL ── */
+
+  /* Script Library */
+  .script-library {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    transition: opacity 0.4s, filter 0.4s;
+  }
+  .script-library.dimmed { opacity: 0.4; pointer-events: none; filter: blur(1px); }
+
+  .library-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .library-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--charcoal);
+  }
+
+  .library-cols {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 680px) { .library-cols { grid-template-columns: 1fr; } }
+
+  .script-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+
+  .script-card {
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 13px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--cream);
+    position: relative;
+  }
+  .script-card:hover { border-color: var(--sage); background: var(--sage-pale); }
+  .script-card.selected {
+    border-color: var(--sage);
+    background: var(--sage-pale);
+    box-shadow: 0 0 0 3px rgba(122,140,110,0.18);
+  }
+  .card-duration {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sage);
+    font-weight: 500;
+    margin-bottom: 5px;
+  }
+  .card-title {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    line-height: 1.35;
+  }
+  .card-selected-dot {
+    position: absolute;
+    top: 9px; right: 9px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--sage);
+    display: none;
+  }
+  .script-card.selected .card-selected-dot { display: block; }
+
+  .divider-or {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding-top: 8px;
+  }
+  .divider-or::before, .divider-or::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+  }
+
+  .upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-width: 120px;
+  }
+  .upload-btn {
+    border: 1.5px dashed var(--border);
+    border-radius: 9px;
+    padding: 18px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 130px;
+  }
+  .upload-btn:hover { border-color: var(--amber); background: var(--amber-pale); }
+  .upload-btn.selected { border-color: var(--amber); background: var(--amber-pale); border-style: solid; }
+  .upload-icon { font-size: 1.4rem; margin-bottom: 6px; }
+  .upload-label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+  .upload-name {
+    font-size: 0.72rem;
+    color: var(--amber);
+    margin-top: 4px;
+    word-break: break-all;
+    text-align: center;
+    max-width: 130px;
+  }
+
+  /* Custom filler input */
+  .filler-input-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .filler-input-wrap input[type=text] {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--font-body);
+    font-size: 0.83rem;
+    color: var(--charcoal);
+    background: white;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .filler-input-wrap input[type=text]:focus { border-color: var(--sage); }
+  .btn-add-filler {
+    background: var(--sage-pale);
+    border: 1.5px solid var(--sage-light);
+    color: var(--sage);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .btn-add-filler:hover { background: var(--sage); color: white; border-color: var(--sage); }
+  .filler-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .filler-tag {
+    background: var(--cream-dark);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 3px 10px 3px 12px;
+    font-size: 0.76rem;
+    color: var(--charcoal);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filler-tag button {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 0.8rem; line-height: 1; padding: 0;
+  }
+  .filler-tag button:hover { color: var(--red-soft); }
+
+  /* Script Display */
+  .script-display-wrap {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .script-display-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--cream);
+  }
+  .script-badge {
+    background: var(--sage);
+    color: white;
+    padding: 3px 12px;
+    border-radius: 100px;
+    font-size: 0.73rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+  }
+  .script-display-body {
+    padding: 22px 24px;
+    max-height: 240px;
+    overflow-y: auto;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1.2rem;
+    line-height: 2;
+    color: var(--charcoal);
+  }
+  .script-empty {
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 32px;
+    text-align: center;
+  }
+  .word-span { transition: background 0.2s; border-radius: 2px; padding: 1px 0; }
+  .word-match { background: rgba(90,138,90,0.18); color: var(--green-soft); }
+  .word-low { background: rgba(192,154,42,0.18); color: var(--yellow-soft); }
+  .word-miss { background: rgba(192,83,58,0.18); color: var(--red-soft); }
+  .script-legend {
+    display: flex;
+    gap: 16px;
+    padding: 10px 24px 14px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .legend-dot.match { background: rgba(90,138,90,0.35); }
+  .legend-dot.low   { background: rgba(192,154,42,0.35); }
+  .legend-dot.miss  { background: rgba(192,83,58,0.35); }
+
+  /* Start/Stop Button area */
+  .session-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .btn-start {
+    background: var(--sage);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 15px 40px;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 500;
+    font-style: italic;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 4px 16px rgba(122,140,110,0.3);
+    letter-spacing: 0.01em;
+  }
+  .btn-start:hover { background: #6a7c5e; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(122,140,110,0.35); }
+  .btn-start:active { transform: translateY(0); }
+  .btn-start.running {
+    background: var(--red-soft);
+    box-shadow: 0 4px 16px rgba(192,83,58,0.3);
+  }
+  .btn-start.running:hover { background: #b04530; }
+  .btn-start:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Live Transcript */
+  .transcript-wrap {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    display: none;
+  }
+  .transcript-wrap.visible { display: block; }
+  .transcript-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .transcript-title {
+    font-size: 0.78rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--red-soft);
+    animation: pulse-dot 1.2s infinite;
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+  .transcript-body {
+    padding: 18px 22px;
+    min-height: 80px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: var(--font-body);
+    font-size: 0.93rem;
+    line-height: 1.7;
+    color: var(--charcoal);
+  }
+  .filler-hit {
+    background: rgba(200,131,58,0.25);
+    color: var(--amber);
+    border-radius: 3px;
+    padding: 0 3px;
+    font-weight: 500;
+  }
+
+  /* Filler Words Config */
+  .filler-config {
+    background: var(--cream-dark);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+  }
+
+  /* Stats Bar */
+  .stats-bar {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 22px;
+    box-shadow: 0 -4px 24px var(--shadow);
+    display: none;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+  .stats-bar.visible { display: flex; align-items: center; gap: 0; }
+
+  .stat-item {
+    flex: 1;
+    min-width: 90px;
+    text-align: center;
+    padding: 0 12px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    line-height: 1;
+  }
+  .stat-value.wpm-slow { color: var(--muted); }
+  .stat-value.wpm-good { color: var(--sage); }
+  .stat-value.wpm-fast { color: var(--amber); }
+
+  .vol-bar-wrap {
+    flex: 1;
+    min-width: 100px;
+    padding: 0 12px;
+  }
+  .vol-bar-track {
+    height: 6px;
+    background: var(--cream-dark);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .vol-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sage-light), var(--sage));
+    border-radius: 100px;
+    width: 0%;
+    transition: width 0.08s linear;
+  }
+
+  /* ── COUNTDOWN OVERLAY ── */
+  #countdown-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(247,244,239,0.92);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+  }
+  #countdown-overlay.visible { display: flex; }
+
+  .countdown-number {
+    font-family: var(--font-display);
+    font-size: 9rem;
+    font-weight: 400;
+    color: var(--sage);
+    line-height: 1;
+    animation: count-pulse 0.9s ease-in-out;
+  }
+  .countdown-number.fast { animation: count-pulse-fast 0.6s ease-in-out; }
+  .countdown-number.burst { animation: count-burst 0.5s ease-out; color: var(--amber); }
+
+  @keyframes count-pulse {
+    0% { transform: scale(0.85); opacity: 0.7; }
+    50% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes count-pulse-fast {
+    0% { transform: scale(0.8); opacity: 0.6; }
+    40% { transform: scale(1.08); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes count-burst {
+    0% { transform: scale(0.7); opacity: 0.5; }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .countdown-word {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-style: italic;
+    color: var(--charcoal);
+    letter-spacing: 0.02em;
+  }
+  #btn-cancel-countdown {
+    margin-top: 8px;
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 22px;
+    font-family: var(--font-body);
+    font-size: 0.83rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #btn-cancel-countdown:hover { border-color: var(--red-soft); color: var(--red-soft); }
+
+  /* Session Summary */
+  .session-summary {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    display: none;
+    margin-bottom: 24px;
+  }
+  .session-summary.visible { display: block; }
+  .summary-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    margin-bottom: 24px;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .summary-stat {
+    background: var(--cream);
+    border-radius: 10px;
+    padding: 16px 20px;
+    text-align: center;
+  }
+  .summary-stat .s-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .summary-stat .s-value {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--charcoal);
+    line-height: 1;
+  }
+  .filler-breakdown {
+    margin-bottom: 24px;
+  }
+  .filler-breakdown-title {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .filler-breakdown-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filler-bd-item {
+    background: var(--amber-pale);
+    border: 1px solid var(--amber-light);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 0.82rem;
+    color: var(--charcoal);
+  }
+  .filler-bd-item span { font-weight: 600; color: var(--amber); margin-left: 5px; }
+
+  /* No-speech fallback */
+  .no-speech-banner {
+    background: var(--amber-pale);
+    border: 1px solid var(--amber-light);
+    border-radius: 9px;
+    padding: 14px 18px;
+    font-size: 0.85rem;
+    color: var(--charcoal);
+    margin-bottom: 16px;
+    display: none;
+  }
+  .no-speech-banner.visible { display: block; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
+</style>
+</head>
+<body>
+
+<!-- DISCLAIMER BANNER -->
+<div id="disclaimer">
+  <span class="disc-icon">ℹ️</span>
+  <div class="disc-text">
+    <strong>iOS users:</strong> Speech recognition may stop after silences and requires a tap to resume. For best results, use Chrome on Android or desktop.
+    Speech data is processed by <strong>Google's servers</strong> in Chrome and Edge browsers.
+  </div>
+  <button onclick="this.parentElement.remove()" aria-label="Dismiss">✕</button>
+</div>
+
+<header>
+  <div class="logo">Orat<span>or</span></div>
+  <div class="tagline">Vocal Coach</div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('breathing')">Breathing Exercise</button>
+  <button class="tab-btn" onclick="switchTab('practice')">Live Practice</button>
+</nav>
+
+<!-- ════════════════════════════════════════
+     BREATHING PANEL
+════════════════════════════════════════ -->
+<div id="panel-breathing" class="panel active">
+  <div class="breathing-layout">
+    <div class="breathing-controls">
+      <div class="section-label">Exercise Mode</div>
+      <div class="control-group">
+        <div class="mode-pills">
+          <button class="pill active" data-mode="box" onclick="selectBreathMode('box', this)">Box (4-4-4-4)</button>
+          <button class="pill" data-mode="478" onclick="selectBreathMode('478', this)">4-7-8</button>
+          <button class="pill" data-mode="simple" onclick="selectBreathMode('simple', this)">Simple (4-4)</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Cycles</label>
+        <div class="cycle-row">
+          <input type="range" id="cycle-slider" min="1" max="20" value="5" oninput="updateCycles(this.value)">
+          <div class="cycle-val" id="cycle-display">5</div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Filler Words to Practise With</label>
+        <div class="filler-input-wrap">
+          <input type="text" id="breath-custom" placeholder="Add custom word…" disabled style="opacity:0.5">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn-primary" id="btn-breath-start" onclick="startBreathing()">Begin</button>
+        <button class="btn-secondary" id="btn-breath-stop" onclick="stopBreathing()" style="display:none">Stop</button>
+      </div>
+    </div>
+
+    <div class="breathing-visual">
+      <div class="breath-circle-wrap">
+        <div class="breath-ring breath-ring-outer" id="ring-outer"></div>
+        <div class="breath-ring breath-ring-mid" id="ring-mid"></div>
+        <div class="breath-circle" id="breath-circle">
+          <div class="breath-phase" id="breath-phase-inner">—</div>
+        </div>
+      </div>
+      <div class="breath-info">
+        <div class="breath-phase-label" id="breath-phase-label">Ready</div>
+        <div class="breath-countdown" id="breath-countdown">—</div>
+        <div class="breath-cycles-left" id="breath-cycles-left"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     LIVE PRACTICE PANEL
+════════════════════════════════════════ -->
+<div id="panel-practice" class="panel">
+
+  <!-- No speech support fallback -->
+  <div class="no-speech-banner" id="no-speech-banner">
+    ⚠️ Your browser doesn't support the Web Speech API. Please use Chrome or Edge for live practice features.
+  </div>
+
+  <!-- STEP 1: Script Library -->
+  <div class="script-library" id="script-library">
+    <div class="library-header">
+      <div class="library-title">Script Library</div>
+    </div>
+    <div class="library-cols">
+      <div>
+        <div class="section-label">Built-in Scripts</div>
+        <div class="script-cards" id="script-cards"></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div class="divider-or">or</div>
+        <div class="upload-area">
+          <div class="section-label" style="text-align:center">Upload</div>
+          <div class="upload-btn" id="upload-btn" onclick="document.getElementById('file-input').click()">
+            <div class="upload-icon">📄</div>
+            <div class="upload-label">Upload .txt script</div>
+          </div>
+          <div class="upload-name" id="upload-name"></div>
+          <input type="file" id="file-input" accept=".txt" style="display:none" onchange="loadTextFile(this)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filler Words Config -->
+  <div class="filler-config">
+    <div class="section-label">Filler Words to Track</div>
+    <div class="filler-tags" id="filler-tags"></div>
+    <div class="filler-input-wrap" style="margin-top:10px">
+      <input type="text" id="filler-custom-input" placeholder="Add custom filler word…" onkeydown="if(event.key==='Enter')addCustomFiller()">
+      <button class="btn-add-filler" onclick="addCustomFiller()">+ Add</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Script Display -->
+  <div class="script-display-wrap">
+    <div class="script-display-header">
+      <span class="section-label" style="margin:0">Script</span>
+      <span class="script-badge" id="script-badge" style="display:none"></span>
+    </div>
+    <div class="script-display-body" id="script-display">
+      <div class="script-empty">Select or upload a script above to get started.</div>
+    </div>
+    <div class="script-legend">
+      <div class="legend-item"><div class="legend-dot match"></div>Word matched</div>
+      <div class="legend-item"><div class="legend-dot low"></div>Low confidence</div>
+      <div class="legend-item"><div class="legend-dot miss"></div>Word missed</div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Session Control -->
+  <div class="session-controls">
+    <button class="btn-start" id="btn-session-start" onclick="handleSessionBtn()" disabled>
+      Start Practice
+    </button>
+    <div style="font-size:0.82rem;color:var(--muted);font-style:italic" id="session-hint">Select a script to begin</div>
+  </div>
+
+  <!-- STEP 4: Live Transcript -->
+  <div class="transcript-wrap" id="transcript-wrap">
+    <div class="transcript-header">
+      <div class="transcript-title"><span class="live-dot"></span>Live Transcript</div>
+    </div>
+    <div class="transcript-body" id="transcript-body"></div>
+  </div>
+
+  <!-- Session Summary -->
+  <div class="session-summary" id="session-summary">
+    <div class="summary-title">Session Complete</div>
+    <div class="summary-grid" id="summary-grid"></div>
+    <div class="filler-breakdown" id="summary-fillers"></div>
+    <button class="btn-primary" onclick="resetSession()">Start New Session</button>
+  </div>
+
+  <!-- STEP 5: Stats Bar -->
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-item">
+      <div class="stat-label">WPM</div>
+      <div class="stat-value" id="stat-wpm">—</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Fillers</div>
+      <div class="stat-value" id="stat-fillers">0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Elapsed</div>
+      <div class="stat-value" id="stat-elapsed">0:00</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Words</div>
+      <div class="stat-value" id="stat-words">0</div>
+    </div>
+    <div class="vol-bar-wrap stat-item">
+      <div class="stat-label">Volume</div>
+      <div class="vol-bar-track"><div class="vol-bar-fill" id="vol-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- COUNTDOWN OVERLAY -->
+<div id="countdown-overlay">
+  <div class="countdown-number" id="countdown-number">3</div>
+  <div class="countdown-word" id="countdown-word">Ready</div>
+  <button id="btn-cancel-countdown" onclick="cancelCountdown()">Cancel (Esc)</button>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function switchTab(tab) {
+  ['breathing','practice'].forEach(t => {
+    $(`panel-${t}`).classList.toggle('active', t === tab);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0 && tab==='breathing') || (i===1 && tab==='practice'));
+  });
+}
+
+// ════════════════════════════════════════
+// WEB AUDIO
+// ════════════════════════════════════════
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, duration, type='sine', volume=0.15, fadeIn=0.05, fadeOut=0.1) {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, ctx.currentTime);
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + fadeIn);
+  gain.gain.setValueAtTime(volume, ctx.currentTime + duration - fadeOut);
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + duration);
+}
+
+function playOrFallback(audioId, freq, dur, type='sine', vol=0.15) {
+  const el = $(audioId);
+  if (el && el.src && el.src !== window.location.href) {
+    el.currentTime = 0; el.play().catch(() => playTone(freq, dur, type, vol));
+  } else {
+    playTone(freq, dur, type, vol);
+  }
+}
+
+// ════════════════════════════════════════
+// BREATHING EXERCISE
+// ════════════════════════════════════════
+const BREATH_MODES = {
+  box:    { phases: ['Inhale','Hold','Exhale','Hold'], times: [4,4,4,4], label: 'Box Breathing' },
+  '478':  { phases: ['Inhale','Hold','Exhale'],        times: [4,7,8],   label: '4-7-8' },
+  simple: { phases: ['Inhale','Exhale'],               times: [4,4],     label: 'Simple' }
+};
+let breathMode = 'box';
+let breathTimer = null;
+let breathRunning = false;
+let breathCyclesLeft = 0;
+let breathPhaseIdx = 0;
+let breathSecondsLeft = 0;
+
+function selectBreathMode(m, btn) {
+  breathMode = m;
+  document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function updateCycles(v) { $('cycle-display').textContent = v; }
+
+function startBreathing() {
+  const cycles = parseInt($('cycle-slider').value);
+  breathCyclesLeft = cycles;
+  breathPhaseIdx = 0;
+  breathRunning = true;
+  $('btn-breath-start').style.display = 'none';
+  $('btn-breath-stop').style.display = '';
+  runBreathPhase();
+}
+
+function stopBreathing() {
+  breathRunning = false;
+  clearTimeout(breathTimer);
+  resetBreathVisual();
+  $('btn-breath-start').style.display = '';
+  $('btn-breath-stop').style.display = 'none';
+}
+
+function resetBreathVisual() {
+  $('breath-phase-inner').textContent = '—';
+  $('breath-phase-label').textContent = 'Ready';
+  $('breath-countdown').textContent = '—';
+  $('breath-cycles-left').textContent = '';
+  const c = $('breath-circle');
+  c.style.transform = 'scale(1)';
+  c.style.background = 'radial-gradient(circle at 40% 35%, var(--sage-light), var(--sage))';
+}
+
+function runBreathPhase() {
+  if (!breathRunning) return;
+  const mode = BREATH_MODES[breathMode];
+  if (breathPhaseIdx >= mode.phases.length) {
+    breathPhaseIdx = 0;
+    breathCyclesLeft--;
+    if (breathCyclesLeft <= 0) { stopBreathing(); return; }
+  }
+  const phase = mode.phases[breathPhaseIdx];
+  breathSecondsLeft = mode.times[breathPhaseIdx];
+
+  $('breath-phase-inner').textContent = phase;
+  $('breath-phase-label').textContent = phase;
+  $('breath-cycles-left').textContent = `Cycle ${parseInt($('cycle-slider').value) - breathCyclesLeft + 1} of ${$('cycle-slider').value}`;
+
+  // Circle animation
+  const circle = $('breath-circle');
+  if (phase === 'Inhale') {
+    circle.style.transition = `transform ${breathSecondsLeft}s ease-in-out`;
+    circle.style.transform = 'scale(1.55)';
+    circle.style.background = 'radial-gradient(circle at 40% 35%, #c5d8bc, var(--sage))';
+    playOrFallback('audio-inhale', 220, breathSecondsLeft * 0.8, 'sine', 0.12);
+  } else if (phase === 'Exhale') {
+    circle.style.transition = `transform ${breathSecondsLeft}s ease-in-out`;
+    circle.style.transform = 'scale(0.85)';
+    circle.style.background = 'radial-gradient(circle at 40% 35%, var(--sage-light), #5a7050)';
+    playOrFallback('audio-exhale', 180, breathSecondsLeft * 0.8, 'sine', 0.10);
+  } else {
+    circle.style.transition = 'none';
+    playOrFallback('audio-hold', 198, breathSecondsLeft * 0.8, 'triangle', 0.07);
+  }
+
+  breathPhaseIdx++;
+  tickBreath();
+}
+
+function tickBreath() {
+  if (!breathRunning || breathSecondsLeft <= 0) { runBreathPhase(); return; }
+  $('breath-countdown').textContent = breathSecondsLeft;
+  breathSecondsLeft--;
+  breathTimer = setTimeout(tickBreath, 1000);
+}
+
+// ════════════════════════════════════════
+// SCRIPTS DATA
+// ════════════════════════════════════════
+const SCRIPTS = [
+  {
+    id: 1,
+    duration: '60s',
+    title: 'Product Pitch',
+    subtitle: 'Tech Startup',
+    text: `Imagine a world where your team never misses a deadline — not because they're working harder, but because they're working smarter. That's what we built at Nexus.
+
+Nexus is an AI-powered project intelligence platform that predicts bottlenecks before they happen. It learns from your team's patterns, flags risks three days out, and suggests reallocation — automatically.
+
+We launched six months ago. We have eighty enterprise clients. Average teams using Nexus ship twenty-three percent faster in the first quarter alone.
+
+The productivity software market is worth forty-seven billion dollars. We're capturing the part that's been ignored: proactive intelligence, not reactive dashboards.
+
+We're raising a seed round to scale engineering and expand to Southeast Asia. We'd love to have you at the table. Let's talk.`
+  },
+  {
+    id: 2,
+    duration: '90s',
+    title: 'Project Status Update',
+    subtitle: 'Corporate',
+    text: `Good morning everyone. I'll give a quick update on Project Aurora before we get into Q&A.
+
+We're currently in phase two of three. The data migration work is complete — all 1.2 million legacy records have been validated and moved to the new platform with zero data loss. That was ahead of schedule, so well done to the technical team.
+
+Where we're at today: user acceptance testing is sixty percent done. We've identified fourteen issues, three of which are P1 — critical path. The team has triaged them and we expect all three resolved by end of this week.
+
+The timeline: we're still tracking toward a go-live of the fifteenth. That's our firm commitment to the business. However, I want to be transparent — if the P1 issues surface further dependencies, we may need to discuss a one-week buffer.
+
+Budget is on track. We've consumed seventy-two percent of the contingency fund, which is within acceptable bands at this stage.
+
+Next steps from today: testing continues, we'll have a daily stand-up with the integration team, and I'll send a written status update Friday COB.
+
+Any questions?`
+  },
+  {
+    id: 3,
+    duration: '2min',
+    title: 'Conference Talk Opening',
+    subtitle: 'Keynote',
+    text: `In 2012, I made a decision that I thought would end my career.
+
+I was a senior engineer at a company everyone in this room has heard of. We had a product. It worked. It shipped. It made money. And I stood up in an all-hands and said: "I think we're building the wrong thing."
+
+I didn't have data. I had intuition. And in a data-driven culture, intuition is professional suicide.
+
+They let me run a four-week experiment. Four weeks to prove something I couldn't even fully articulate.
+
+That experiment became the company's highest-grossing product line for the next five years.
+
+I'm not here to tell you to trust your gut over your data. I'm here to tell you something more uncomfortable than that: the best decisions I've ever seen — in engineering, in product, in leadership — live in the space between data and instinct. And most organizations have built cultures that make that space impossible to inhabit.
+
+Today I want to talk about how to reclaim it.
+
+We'll look at three frameworks — from companies that got this right and a few that got it spectacularly wrong — and I'll leave you with one practical thing you can do on Monday morning to start changing your culture.
+
+Let's begin.`
+  },
+  {
+    id: 4,
+    duration: '60s',
+    title: 'Self-Introduction',
+    subtitle: 'Elevator Pitch',
+    text: `Hi, I'm Jamie. I'm a solutions architect with thirteen years of experience helping enterprise organizations modernize their infrastructure — specifically the messy middle ground between legacy systems and the cloud.
+
+My work sits at the intersection of technology and business outcomes. I don't just design systems — I figure out why the old ones aren't working and what it'll actually take to make the new ones stick in an organization.
+
+Recently I've been focused on AI integration patterns for large teams — how you give knowledge workers real leverage without drowning them in tools they don't trust.
+
+I'm at this conference because I'm looking for conversations at the edge of what's possible — the problems that don't have clean solutions yet. If that sounds like something you're working on, I'd genuinely love to compare notes.
+
+What brings you here?`
+  },
+  {
+    id: 5,
+    duration: '90s',
+    title: 'Persuasive Argument',
+    subtitle: 'Four-Day Work Week',
+    text: `The four-day work week is not a perk. It is a productivity strategy. And the evidence is now overwhelming.
+
+Microsoft Japan ran a four-day week trial. Productivity increased forty percent. Not five percent — forty. Unilever piloted it across New Zealand. Output held constant while employee wellbeing scores improved dramatically.
+
+The argument against it is always the same: "We'll lose twelve and a half percent of our capacity." But that framing reveals a fundamental misunderstanding of how knowledge work actually happens.
+
+Knowledge workers are not productive for forty hours a week. Research from Stanford shows productivity per hour drops sharply after fifty hours — and after fifty-five hours, you get almost nothing additional from extra time. We are not losing output. We are losing the illusion of output.
+
+What a four-day week does is force organizations to eliminate the things that were never adding value — the check-in meetings that could be emails, the status updates that existed to perform busyness, the coordination overhead created by unclear priorities.
+
+The companies that have implemented this aren't returning to five days. Because once you've built a culture that runs on clarity and trust rather than presence and performance, you don't go backwards.
+
+The question isn't whether your company can afford the four-day week. The question is whether you can afford the culture that makes it necessary to avoid it.`
+  }
+];
+
+// ════════════════════════════════════════
+// FILLER WORDS
+// ════════════════════════════════════════
+const DEFAULT_FILLERS = ['um','uh','like','you know','basically','actually','right','so'];
+let fillerWords = [...DEFAULT_FILLERS];
+let fillerCounts = {};
+
+function renderFillerTags() {
+  const container = $('filler-tags');
+  container.innerHTML = '';
+  fillerWords.forEach(word => {
+    const tag = document.createElement('div');
+    tag.className = 'filler-tag';
+    tag.innerHTML = `${word}<button onclick="removeFillerWord('${word.replace(/'/g,"\\'")}')">✕</button>`;
+    container.appendChild(tag);
+  });
+}
+
+function removeFillerWord(word) {
+  fillerWords = fillerWords.filter(w => w !== word);
+  renderFillerTags();
+}
+
+function addCustomFiller() {
+  const input = $('filler-custom-input');
+  const word = input.value.trim().toLowerCase();
+  if (word && !fillerWords.includes(word)) {
+    fillerWords.push(word);
+    renderFillerTags();
+  }
+  input.value = '';
+}
+
+// ════════════════════════════════════════
+// SCRIPT LIBRARY
+// ════════════════════════════════════════
+let selectedScript = null;
+let selectedScriptTitle = '';
+
+function renderScriptCards() {
+  const container = $('script-cards');
+  container.innerHTML = '';
+  SCRIPTS.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'script-card';
+    card.id = `card-${s.id}`;
+    card.innerHTML = `
+      <div class="card-selected-dot"></div>
+      <div class="card-duration">${s.duration} · ${s.subtitle}</div>
+      <div class="card-title">${s.title}</div>
+    `;
+    card.onclick = () => loadBuiltinScript(s);
+    container.appendChild(card);
+  });
+}
+
+function loadBuiltinScript(s) {
+  if (sessionActive && !confirm('A session is active. Load a new script and stop the session?')) return;
+  if (sessionActive) stopSession();
+
+  selectedScript = s.text;
+  selectedScriptTitle = `${s.title} — ${s.subtitle}`;
+
+  // Update card states
+  document.querySelectorAll('.script-card').forEach(c => c.classList.remove('selected'));
+  $(`card-${s.id}`).classList.add('selected');
+  $('upload-btn').classList.remove('selected');
+  $('upload-name').textContent = '';
+
+  displayScript();
+  localStorage.removeItem('orator-uploaded-script');
+}
+
+function loadTextFile(input) {
+  if (!input.files[0]) return;
+  if (sessionActive && !confirm('A session is active. Load a new script and stop the session?')) return;
+  if (sessionActive) stopSession();
+
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = e => {
+    selectedScript = e.target.result;
+    selectedScriptTitle = file.name.replace('.txt','');
+    document.querySelectorAll('.script-card').forEach(c => c.classList.remove('selected'));
+    $('upload-btn').classList.add('selected');
+    $('upload-name').textContent = file.name;
+    localStorage.setItem('orator-uploaded-script', JSON.stringify({ text: selectedScript, name: selectedScriptTitle }));
+    displayScript();
+  };
+  reader.readAsText(file);
+}
+
+function displayScript() {
+  if (!selectedScript) {
+    $('script-display').innerHTML = '<div class="script-empty">Select or upload a script above to get started.</div>';
+    $('script-badge').style.display = 'none';
+    $('btn-session-start').disabled = true;
+    $('session-hint').textContent = 'Select a script to begin';
+    return;
+  }
+  $('script-badge').textContent = selectedScriptTitle;
+  $('script-badge').style.display = '';
+  $('btn-session-start').disabled = false;
+  $('session-hint').textContent = 'Ready to practice';
+
+  // Tokenize into word spans
+  const words = selectedScript.split(/(\s+)/);
+  let html = '';
+  let wordIdx = 0;
+  words.forEach(tok => {
+    if (/\s/.test(tok)) { html += tok; }
+    else if (tok) {
+      html += `<span class="word-span" id="ws-${wordIdx}" data-word="${tok.toLowerCase().replace(/[^a-z']/g,'')}">${tok}</span>`;
+      wordIdx++;
+    }
+  });
+  $('script-display').innerHTML = html;
+}
+
+// Restore uploaded script from localStorage
+window.addEventListener('DOMContentLoaded', () => {
+  renderScriptCards();
+  renderFillerTags();
+
+  const saved = localStorage.getItem('orator-uploaded-script');
+  if (saved) {
+    try {
+      const d = JSON.parse(saved);
+      selectedScript = d.text;
+      selectedScriptTitle = d.name;
+      $('upload-btn').classList.add('selected');
+      $('upload-name').textContent = d.name;
+      displayScript();
+    } catch(e) {}
+  }
+
+  // Check speech API
+  if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+    $('no-speech-banner').classList.add('visible');
+    $('btn-session-start').disabled = true;
+  }
+});
+
+// ════════════════════════════════════════
+// COUNTDOWN
+// ════════════════════════════════════════
+let countdownTimeout = null;
+let countdownCancelled = false;
+
+function showCountdown() {
+  return new Promise((resolve, reject) => {
+    countdownCancelled = false;
+    const overlay = $('countdown-overlay');
+    overlay.classList.add('visible');
+
+    const steps = [
+      { n: '3', word: 'Ready', cls: '', freq: 330, dur: 0.25 },
+      { n: '2', word: 'Set',   cls: 'fast', freq: 330, dur: 0.25 },
+      { n: '1', word: 'Go!',   cls: 'burst', freq: 660, dur: 0.4 }
+    ];
+
+    let i = 0;
+    function nextStep() {
+      if (countdownCancelled) { overlay.classList.remove('visible'); reject(); return; }
+      if (i >= steps.length) {
+        overlay.classList.remove('visible');
+        resolve();
+        return;
+      }
+      const s = steps[i++];
+      const numEl = $('countdown-number');
+      numEl.textContent = s.n;
+      numEl.className = `countdown-number${s.cls ? ' '+s.cls : ''}`;
+      $('countdown-word').textContent = s.word;
+
+      // Play audio
+      const aEl = $('audio-countdown');
+      if (aEl && aEl.src && aEl.src !== window.location.href) {
+        aEl.currentTime = 0; aEl.play().catch(() => playTone(s.freq, s.dur, 'sine', 0.18));
+      } else {
+        playTone(s.freq, s.dur, 'sine', 0.18);
+      }
+
+      countdownTimeout = setTimeout(nextStep, 1000);
+    }
+    nextStep();
+  });
+}
+
+function cancelCountdown() {
+  countdownCancelled = true;
+  clearTimeout(countdownTimeout);
+  $('countdown-overlay').classList.remove('visible');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cancelCountdown(); });
+
+// ════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════
+let sessionActive = false;
+let recognition = null;
+let sessionStartTime = null;
+let sessionTimerInterval = null;
+let totalWords = 0;
+let totalFillers = 0;
+let fillerBreakdown = {};
+let wakeLock = null;
+let analyserNode = null;
+let volumeRaf = null;
+let scriptWordIdx = 0;
+let scriptWordEls = [];
+let fullTranscriptText = '';
+
+async function handleSessionBtn() {
+  if (sessionActive) { stopSession(); return; }
+  if (!selectedScript) return;
+
+  startSession();
+}
+
+async function startSession() {
+  sessionActive = true;
+  fullTranscriptText = '';
+  totalWords = 0;
+  totalFillers = 0;
+  fillerBreakdown = {};
+  scriptWordIdx = 0;
+  scriptWordEls = Array.from($('script-display').querySelectorAll('.word-span'));
+
+  // Reset filler counts
+  fillerWords.forEach(w => { fillerBreakdown[w] = 0; });
+
+  // Update UI
+  $('btn-session-start').textContent = 'Stop Practice';
+  $('btn-session-start').classList.add('running');
+  $('script-library').classList.add('dimmed');
+  $('transcript-wrap').classList.add('visible');
+  $('stats-bar').classList.add('visible');
+  $('session-summary').classList.remove('visible');
+  $('session-hint').textContent = 'Session in progress…';
+  $('transcript-body').innerHTML = '';
+
+  // WakeLock
+  if ('wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+  }
+
+  // Volume analyser
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const ctx = getAudioCtx();
+    const source = ctx.createMediaStreamSource(stream);
+    analyserNode = ctx.createAnalyser();
+    analyserNode.fftSize = 256;
+    source.connect(analyserNode);
+    animateVolume();
+  } catch(e) {}
+
+  // Start timer
+  sessionStartTime = Date.now();
+  sessionTimerInterval = setInterval(updateStatsBar, 500);
+
+  // Start recognition
+  startRecognition();
+}
+
+function stopSession() {
+  sessionActive = false;
+  if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
+  if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+  if (volumeRaf) cancelAnimationFrame(volumeRaf);
+  if (wakeLock) { try { wakeLock.release(); } catch(e) {} wakeLock = null; }
+
+  $('btn-session-start').textContent = 'Start Practice';
+  $('btn-session-start').classList.remove('running');
+  $('script-library').classList.remove('dimmed');
+  $('stats-bar').classList.remove('visible');
+  // Keep transcript visible after session ends
+  $('session-hint').textContent = selectedScript ? 'Ready to practice' : 'Select a script to begin';
+
+  showSummary();
+}
+
+function resetSession() {
+  $('session-summary').classList.remove('visible');
+  displayScript();
+  $('btn-session-start').textContent = 'Start Practice';
+  $('btn-session-start').disabled = !selectedScript;
+  $('session-hint').textContent = selectedScript ? 'Ready to practice' : 'Select a script to begin';
+  $('script-library').classList.remove('dimmed');
+}
+
+function showSummary() {
+  const elapsed = sessionStartTime ? Math.floor((Date.now() - sessionStartTime) / 1000) : 0;
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  const wpm = elapsed > 0 ? Math.round((totalWords / elapsed) * 60) : 0;
+
+  $('summary-grid').innerHTML = `
+    <div class="summary-stat"><div class="s-label">Avg WPM</div><div class="s-value">${wpm}</div></div>
+    <div class="summary-stat"><div class="s-label">Total Fillers</div><div class="s-value">${totalFillers}</div></div>
+    <div class="summary-stat"><div class="s-label">Duration</div><div class="s-value">${mins}:${secs.toString().padStart(2,'0')}</div></div>
+    <div class="summary-stat"><div class="s-label">Words Spoken</div><div class="s-value">${totalWords}</div></div>
+  `;
+
+  const fillerEntries = Object.entries(fillerBreakdown).filter(([,v]) => v > 0);
+  if (fillerEntries.length) {
+    $('summary-fillers').innerHTML = `
+      <div class="filler-breakdown-title">Filler Word Breakdown</div>
+      <div class="filler-breakdown-list">${fillerEntries.map(([w,c]) =>
+        `<div class="filler-bd-item">${w}<span>×${c}</span></div>`).join('')}
+      </div>`;
+  } else {
+    $('summary-fillers').innerHTML = `<div style="font-size:0.85rem;color:var(--sage);font-style:italic">No filler words detected. Excellent!</div>`;
+  }
+
+  $('session-summary').classList.add('visible');
+}
+
+function updateStatsBar() {
+  const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  $('stat-elapsed').textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+  $('stat-words').textContent = totalWords;
+  $('stat-fillers').textContent = totalFillers;
+
+  if (elapsed > 5) {
+    const wpm = Math.round((totalWords / elapsed) * 60);
+    const wpmEl = $('stat-wpm');
+    wpmEl.textContent = wpm;
+    wpmEl.className = 'stat-value ' + (wpm < 100 ? 'wpm-slow' : wpm <= 150 ? 'wpm-good' : 'wpm-fast');
+  }
+}
+
+function animateVolume() {
+  if (!analyserNode) return;
+  const data = new Uint8Array(analyserNode.frequencyBinCount);
+  analyserNode.getByteFrequencyData(data);
+  const avg = data.reduce((a,b) => a+b, 0) / data.length;
+  const pct = Math.min(100, (avg / 128) * 100 * 2.5);
+  $('vol-fill').style.width = pct + '%';
+  volumeRaf = requestAnimationFrame(animateVolume);
+}
+
+// ════════════════════════════════════════
+// SPEECH RECOGNITION
+// ════════════════════════════════════════
+function startRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+
+  recognition = new SR();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  let finalBuffer = '';
+
+  recognition.onresult = e => {
+    let interimText = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalBuffer += transcript + ' ';
+        processTranscriptChunk(transcript, e.results[i][0].confidence);
+      } else {
+        interimText += transcript;
+      }
+    }
+    updateLiveTranscript(finalBuffer, interimText);
+  };
+
+  recognition.onerror = e => {
+    if (e.error === 'aborted' || e.error === 'no-speech') return;
+    console.warn('Speech recognition error:', e.error);
+  };
+
+  recognition.onend = () => {
+    if (sessionActive) {
+      try { recognition.start(); } catch(e) {}
+    }
+  };
+
+  recognition.start();
+}
+
+function processTranscriptChunk(text, confidence) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  totalWords += words.length;
+
+  // Highlight script words
+  words.forEach(w => {
+    const clean = w.toLowerCase().replace(/[^a-z']/g,'');
+    // Skip filler words — they are not part of the script, don't advance position
+    const isFiller = fillerWords.some(fw =>
+      new RegExp(`^${fw.replace(/\s+/g,'\\s+')}$`, 'i').test(clean)
+    );
+    if (isFiller) return;
+
+    if (scriptWordIdx < scriptWordEls.length) {
+      const el = scriptWordEls[scriptWordIdx];
+      const expected = el.dataset.word;
+      if (clean === expected) {
+        // Word matched — low confidence only when explicitly reported as uncertain
+        el.classList.add(confidence > 0 && confidence < 0.7 ? 'word-low' : 'word-match');
+      } else {
+        el.classList.add('word-miss');
+      }
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      scriptWordIdx++;
+    }
+  });
+
+  // Check for filler words
+  const lowerText = text.toLowerCase();
+  fillerWords.forEach(fw => {
+    const regex = new RegExp(`\\b${fw.replace(/\s+/g,'\\s+')}\\b`, 'gi');
+    const hits = (lowerText.match(regex) || []).length;
+    if (hits > 0) {
+      totalFillers += hits;
+      fillerBreakdown[fw] = (fillerBreakdown[fw] || 0) + hits;
+      // Play filler alert
+      const aEl = $('audio-filler-alert');
+      if (aEl && aEl.src && aEl.src !== window.location.href) {
+        aEl.currentTime = 0; aEl.play().catch(() => playTone(880, 0.12, 'square', 0.08));
+      } else {
+        playTone(880, 0.12, 'square', 0.08);
+      }
+    }
+  });
+}
+
+function updateLiveTranscript(finalText, interimText) {
+  const body = $('transcript-body');
+  let highlighted = finalText;
+
+  fillerWords.forEach(fw => {
+    const regex = new RegExp(`\\b(${fw.replace(/\s+/g,'\\s+')})\\b`, 'gi');
+    highlighted = highlighted.replace(regex, '<span class="filler-hit">$1</span>');
+  });
+
+  body.innerHTML = highlighted + (interimText ? `<span style="color:var(--muted);font-style:italic">${interimText}</span>` : '');
+  body.scrollTop = body.scrollHeight;
+}
+</script>
+</body>
+</html>
